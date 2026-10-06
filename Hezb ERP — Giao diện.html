@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Hezb ERP — Giao diện</title>
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+  <style>
+    :root {
+      --bg: #F6F7FB;
+      --sf: #fff;
+      --ink: #0F172A;
+      --mut: #64748B;
+      --ln: #E2E8F0;
+      --pri: #4F46E5;
+      --pri-s: #EEF0FF;
+      --cy: #22D3EE;
+      --ok: #059669;
+      --ok-s: #E3F7EF;
+      --wn: #B45309;
+      --wn-s: #FEF3E2;
+      --er: #DC2626;
+      --er-s: #FDE8E8;
+      box-sizing: border-box;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px)
+    }
+
+    @media(prefers-color-scheme:dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0B1020;
+        --sf: #131A2E;
+        --ink: #E8ECF6;
+        --mut: #8D99B3;
+        --ln: #243049;
+        --pri: #8B85FF;
+        --pri-s: #1E2250;
+        --ok: #34D399;
+        --ok-s: #0F2F27;
+        --wn: #FBBF24;
+        --wn-s: #33260E;
+        --er: #F87171;
+        --er-s: #3A1616
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg: #0B1020;
+      --sf: #131A2E;
+      --ink: #E8ECF6;
+      --mut: #8D99B3;
+      --ln: #243049;
+      --pri: #8B85FF;
+      --pri-s: #1E2250;
+      --ok: #34D399;
+      --ok-s: #0F2F27;
+      --wn: #FBBF24;
+      --wn-s: #33260E;
+      --er: #F87171;
+      --er-s: #3A1616
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0
+    }
+
+    html,
+    body {
+      height: 100%
+    }
+
+    body {
+      font: 14px/1.5 "Be Vietnam Pro", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink)
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+      color: inherit
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--pri);
+      outline-offset: 2px
+    }
+
+    .hide {
+      display: none !important
+    }
+
+    .num {
+      font-variant-numeric: tabular-nums
+    }
+
+    /* login */
+    #login {
+      min-height: 100%;
+      display: grid;
+      grid-template-columns: 1.1fr 1fr
+    }
+
+    .lg-l {
+      background: #0F172A;
+      color: #fff;
+      padding: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden
+    }
+
+    .lg-l h1 {
+      font-size: 34px;
+      line-height: 1.2;
+      max-width: 15em;
+      font-weight: 600;
+      position: relative
+    }
+
+    .lg-l p {
+      color: #94A3B8;
+      max-width: 26em;
+      margin-top: 12px;
+      position: relative
+    }
+
+    .lg-l svg.bg {
+      position: absolute;
+      right: -90px;
+      bottom: -110px;
+      width: 420px;
+      opacity: .9
+    }
+
+    .lg-r {
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background: var(--sf)
+    }
+
+    .lg-r form {
+      width: 100%;
+      max-width: 340px;
+      display: grid;
+      gap: 14px
+    }
+
+    .lg-r h2 {
+      font-size: 22px
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      font-weight: 500;
+      font-size: 13px
+    }
+
+    input {
+      font: inherit;
+      padding: 10px 12px;
+      border: 1px solid var(--ln);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--ink)
+    }
+
+    .btn {
+      background: var(--pri);
+      color: #fff;
+      border: 0;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-weight: 600
+    }
+
+    .btn.sm {
+      padding: 6px 12px;
+      font-size: 13px
+    }
+
+    .btn.ghost {
+      background: transparent;
+      color: var(--ink);
+      border: 1px solid var(--ln)
+    }
+
+    .btn.bad {
+      background: transparent;
+      color: var(--er);
+      border: 1px solid var(--er)
+    }
+
+    .lnk {
+      background: none;
+      border: 0;
+      color: var(--pri);
+      padding: 0;
+      font-size: 13px
+    }
+
+    /* app */
+    #app {
+      display: grid;
+      grid-template-columns: 232px 1fr;
+      min-height: 100%
+    }
+
+    aside {
+      background: var(--sf);
+      border-right: 1px solid var(--ln);
+      padding: 18px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      position: sticky;
+      top: 0;
+      height: 100vh
+    }
+
+    aside .logo {
+      padding: 2px 8px 18px
+    }
+
+    .nv {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      border: 0;
+      background: none;
+      text-align: left;
+      width: 100%;
+      color: var(--mut);
+      font-weight: 500;
+      position: relative
+    }
+
+    .nv:hover {
+      background: var(--bg)
+    }
+
+    .nv.on {
+      background: var(--pri-s);
+      color: var(--pri);
+      font-weight: 600
+    }
+
+    .nv.on:before {
+      content: "";
+      position: absolute;
+      left: -12px;
+      top: 8px;
+      bottom: 8px;
+      width: 3px;
+      border-radius: 0 3px 3px 0;
+      background: var(--cy)
+    }
+
+    .nv svg {
+      width: 18px;
+      height: 18px;
+      flex: none
+    }
+
+    .grp {
+      font-size: 12px;
+      color: var(--mut);
+      padding: 14px 10px 4px
+    }
+
+    .me {
+      margin-top: auto;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-top: 1px solid var(--ln)
+    }
+
+    .me small {
+      display: block;
+      color: var(--mut);
+      font-size: 12px
+    }
+
+    main {
+      min-width: 0
+    }
+
+    .top {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--ln);
+      background: var(--sf);
+      position: sticky;
+      top: 0;
+      z-index: 2
+    }
+
+    .top h1 {
+      font-size: 18px;
+      font-weight: 600;
+      flex: 1
+    }
+
+    .top input {
+      width: 220px
+    }
+
+    .ib {
+      border: 1px solid var(--ln);
+      background: var(--sf);
+      border-radius: 8px;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      position: relative
+    }
+
+    .ib i {
+      position: absolute;
+      top: 6px;
+      right: 7px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--cy);
+      border: 2px solid var(--sf)
+    }
+
+    .pg {
+      padding: 24px 28px 40px;
+      display: grid;
+      gap: 20px
+    }
+
+    .hx {
+      width: 34px;
+      height: 38px;
+      flex: none;
+      background: var(--pri);
+      color: #fff;
+      font-weight: 600;
+      font-size: 12px;
+      display: grid;
+      place-items: center;
+      clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%)
+    }
+
+    .card {
+      background: var(--sf);
+      border: 1px solid var(--ln);
+      border-radius: 12px
+    }
+
+    .card>h3,
+    .ch {
+      padding: 14px 18px;
+      font-size: 15px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--ln);
+      display: flex;
+      justify-content: space-between;
+      align-items: center
+    }
+
+    .bd {
+      padding: 16px 18px
+    }
+
+    .strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr)
+    }
+
+    .strip>div {
+      padding: 16px 18px;
+      border-right: 1px solid var(--ln)
+    }
+
+    .strip>div:last-child {
+      border: 0
+    }
+
+    .strip b {
+      display: block;
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.2
+    }
+
+    .strip span {
+      color: var(--mut);
+      font-size: 13px
+    }
+
+    .strip em {
+      font-style: normal;
+      font-size: 12px;
+      color: var(--ok)
+    }
+
+    .two {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 20px
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 120px 1fr 48px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px
+    }
+
+    .bar div.t {
+      height: 8px;
+      border-radius: 4px;
+      background: var(--bg);
+      overflow: hidden
+    }
+
+    .bar div.t i {
+      display: block;
+      height: 100%;
+      background: var(--pri);
+      border-radius: 4px
+    }
+
+    .bar.hi div.t i {
+      background: var(--er)
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse
+    }
+
+    th {
+      text-align: left;
+      font-weight: 500;
+      color: var(--mut);
+      font-size: 13px;
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--ln)
+    }
+
+    td {
+      padding: 11px 18px;
+      border-bottom: 1px solid var(--ln);
+      vertical-align: middle
+    }
+
+    tr:last-child td {
+      border: 0
+    }
+
+    .who {
+      display: flex;
+      gap: 10px;
+      align-items: center
+    }
+
+    .who small {
+      display: block;
+      color: var(--mut);
+      font-size: 12px
+    }
+
+    .chip {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--bg);
+      color: var(--mut)
+    }
+
+    .chip.ok {
+      background: var(--ok-s);
+      color: var(--ok)
+    }
+
+    .chip.wn {
+      background: var(--wn-s);
+      color: var(--wn)
+    }
+
+    .chip.er {
+      background: var(--er-s);
+      color: var(--er)
+    }
+
+    .chip.pr {
+      background: var(--pri-s);
+      color: var(--pri)
+    }
+
+    .tools {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center
+    }
+
+    .f {
+      border: 1px solid var(--ln);
+      background: var(--sf);
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: 13px
+    }
+
+    .f.on {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink)
+    }
+
+    .lock {
+      color: var(--mut);
+      font-size: 13px
+    }
+
+    .ov {
+      overflow-x: auto
+    }
+
+    /* board */
+    .cols {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(220px, 1fr));
+      gap: 14px;
+      overflow-x: auto
+    }
+
+    .col {
+      background: var(--bg);
+      border: 1px solid var(--ln);
+      border-radius: 12px;
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+      align-content: start
+    }
+
+    .col h4 {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 2px 4px;
+      display: flex;
+      justify-content: space-between
+    }
+
+    .col h4 span {
+      color: var(--mut);
+      font-weight: 500
+    }
+
+    .is {
+      background: var(--sf);
+      border: 1px solid var(--ln);
+      border-radius: 10px;
+      padding: 12px;
+      display: grid;
+      gap: 8px
+    }
+
+    .is p {
+      font-weight: 500
+    }
+
+    .is .m {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--mut);
+      font-size: 12px
+    }
+
+    .k {
+      display: flex;
+      gap: 6px;
+      align-items: center
+    }
+
+    .k i {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+      background: var(--pri)
+    }
+
+    .k i.bug {
+      background: var(--er)
+    }
+
+    .k i.story {
+      background: var(--ok)
+    }
+
+    .is .hx {
+      width: 24px;
+      height: 27px;
+      font-size: 10px
+    }
+
+    .sp {
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      flex-wrap: wrap
+    }
+
+    .pb {
+      flex: 1;
+      min-width: 140px;
+      height: 8px;
+      border-radius: 4px;
+      background: var(--ln);
+      overflow: hidden
+    }
+
+    .pb i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--pri), var(--cy))
+    }
+
+    /* timesheet */
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      font-size: 12px;
+      color: var(--mut)
+    }
+
+    .step b {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 500
+    }
+
+    .step b:before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid var(--ln)
+    }
+
+    .step b.d {
+      color: var(--ink)
+    }
+
+    .step b.d:before {
+      background: var(--pri);
+      border-color: var(--pri)
+    }
+
+    .step b.c:before {
+      border-color: var(--cy);
+      background: var(--cy)
+    }
+
+    .step s {
+      width: 18px;
+      height: 2px;
+      background: var(--ln);
+      margin: 0 6px
+    }
+
+    .step s.d {
+      background: var(--pri)
+    }
+
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      transform: translateX(-50%);
+      background: var(--ink);
+      color: var(--bg);
+      padding: 10px 18px;
+      border-radius: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s
+    }
+
+    #toast.on {
+      opacity: 1
+    }
+
+    .tk {
+      display: grid;
+      grid-template-columns: 1fr 290px;
+      gap: 20px;
+      align-items: start
+    }
+
+    .tl2 {
+      position: relative;
+      display: grid;
+      gap: 16px
+    }
+
+    .tl2:before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--ln)
+    }
+
+    .cm {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 12px;
+      position: relative
+    }
+
+    .cb {
+      border: 1px solid var(--ln);
+      border-radius: 8px;
+      background: var(--sf);
+      overflow: hidden
+    }
+
+    .cb header {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 14px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--ln);
+      font-size: 13px;
+      color: var(--mut)
+    }
+
+    .cb header b {
+      color: var(--ink)
+    }
+
+    .cb .tx {
+      padding: 12px 14px
+    }
+
+    .cb ul {
+      margin: 6px 0 0 18px
+    }
+
+    .cb footer {
+      padding: 0 14px 10px;
+      display: flex;
+      gap: 6px
+    }
+
+    .ev {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-left: 8px;
+      font-size: 13px;
+      color: var(--mut);
+      position: relative
+    }
+
+    .ev i {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--sf);
+      border: 2px solid var(--ln);
+      flex: none
+    }
+
+    .ev.l i {
+      border-color: var(--cy)
+    }
+
+    code {
+      background: var(--bg);
+      padding: 1px 6px;
+      border-radius: 5px;
+      font-size: 12px;
+      border: 1px solid var(--ln)
+    }
+
+    .mt {
+      color: var(--pri);
+      font-weight: 500
+    }
+
+    textarea {
+      font: inherit;
+      width: 100%;
+      min-height: 90px;
+      padding: 10px 12px;
+      border: 1px solid var(--ln);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--ink);
+      resize: vertical
+    }
+
+    select {
+      font: inherit;
+      padding: 10px 12px;
+      border: 1px solid var(--ln);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--ink)
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 12px 8px;
+      padding: 16px 18px;
+      font-size: 13px
+    }
+
+    .kv dt {
+      color: var(--mut)
+    }
+
+    .kv dd {
+      margin: 0
+    }
+
+    input.ti {
+      width: 56px;
+      text-align: center;
+      padding: 6px 0;
+      border-radius: 6px;
+      background: var(--sf)
+    }
+
+    .gr td {
+      background: var(--bg);
+      font-weight: 600
+    }
+
+    .tdy {
+      background: var(--pri-s)
+    }
+
+    .mdl {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, .5);
+      display: grid;
+      place-items: center;
+      z-index: 5;
+      padding: 16px
+    }
+
+    .mdl form {
+      background: var(--sf);
+      border-radius: 14px;
+      padding: 22px;
+      width: 100%;
+      max-width: 440px;
+      display: grid;
+      gap: 12px
+    }
+
+    tr.cl {
+      cursor: pointer
+    }
+
+    tr.cl:hover td {
+      background: var(--bg)
+    }
+
+    @media(max-width:860px) {
+      .tk {
+        grid-template-columns: 1fr
+      }
+    }
+
+    @media(max-width:860px) {
+      #login {
+        grid-template-columns: 1fr
+      }
+
+      .lg-l {
+        display: none
+      }
+
+      #app {
+        grid-template-columns: 1fr
+      }
+
+      aside {
+        position: static;
+        height: auto;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 10px;
+        border: 0;
+        border-bottom: 1px solid var(--ln)
+      }
+
+      aside .logo,
+      .grp,
+      .me {
+        display: none
+      }
+
+      .nv {
+        width: auto;
+        white-space: nowrap
+      }
+
+      .nv.on:before {
+        display: none
+      }
+
+      .top,
+      .pg {
+        padding-left: 16px;
+        padding-right: 16px
+      }
+
+      .top input {
+        display: none
+      }
+
+      .strip {
+        grid-template-columns: 1fr 1fr
+      }
+
+      .two {
+        grid-template-columns: 1fr
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <symbol id="mk" viewBox="-66 -76 132 152">
+        <polygon points="0,-72 62.4,-36 62.4,36 0,72 -62.4,36 -62.4,-36" fill="#4F46E5" />
+        <rect x="-22" y="-30" width="12" height="60" rx="2" fill="#fff" />
+        <rect x="10" y="-30" width="12" height="60" rx="2" fill="#fff" />
+        <polygon points="-10,18 -10,6 10,-18 10,-6" fill="#22D3EE" />
+      </symbol>
+    </defs>
+  </svg>
+
+  <section id="login">
+    <div class="lg-l">
+      <div style="display:flex;align-items:center;gap:10px;position:relative"><svg width="34" height="38">
+          <use href="#mk" />
+        </svg><b style="font-size:24px">Hezb</b></div>
+      <div>
+        <h1>Từ giờ làm việc đến bảng lương, một luồng duy nhất.</h1>
+        <p>Nhân sự, dự án, chấm công và thanh toán của công ty — có phân quyền và nhật ký kiểm toán cho mọi bước duyệt.
+        </p>
+      </div>
+      <svg class="bg" viewBox="-66 -76 132 152">
+        <polygon points="0,-72 62.4,-36 62.4,36 0,72 -62.4,36 -62.4,-36" fill="#4F46E5" />
+        <rect x="-22" y="-30" width="12" height="60" rx="2" fill="#fff" />
+        <rect x="10" y="-30" width="12" height="60" rx="2" fill="#fff" />
+        <polygon points="-10,18 -10,6 10,-18 10,-6" fill="#22D3EE" />
+      </svg>
+    </div>
+    <div class="lg-r">
+      <form id="lf">
+        <h2>Đăng nhập</h2>
+        <label>Email công ty<input type="email" value="minh.tran@hezb.vn" required></label>
+        <label>Mật khẩu<input type="password" value="password" required></label>
+        <button class="btn" type="submit">Đăng nhập</button>
+        <button class="lnk" type="button" onclick="toast('Đã gửi magic link tới email của bạn')">Gửi magic link qua
+          email</button>
+      </form>
+    </div>
+  </section>
+
+  <div id="app" class="hide">
+    <aside id="nav"></aside>
+    <main>
+      <header class="top">
+        <h1 id="ttl"></h1><input placeholder="Tìm nhân sự, dự án, issue…" aria-label="Tìm kiếm">
+        <button class="btn sm" onclick="openLog()">+ Log work</button>
+        <button class="ib" aria-label="Thông báo" onclick="toast('Timesheet của Lan Phạm đang chờ bạn duyệt')"><svg
+            width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path d="M6 8a6 6 0 0112 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 004 0" />
+          </svg><i></i></button>
+        <button class="ib" aria-label="Đổi giao diện" onclick="th()"><svg width="18" height="18" fill="none"
+            stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path d="M21 13A9 9 0 1111 3a7 7 0 0010 10z" />
+          </svg></button>
+      </header>
+      <div id="pg" class="pg"></div>
+    </main>
+  </div>
+  <div id="md" class="hide"></div>
+  <div id="toast" role="status"></div>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const ini = n => n.split(' ').slice(-2).map(w => w[0]).join('');
+    const hx = n => `<span class="hx">${ini(n)}</span>`;
+    const who = (n, s) => `<div class="who">${hx(n)}<div>${n}<small>${s}</small></div></div>`;
+    const I = p => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+    const NAV = [['dash', 'Dashboard', I('<path d="M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z"/>'), 'Tổng quan'],
+    ['projects', 'Dự án', I('<path d="M3 7h7l2 2h9v11H3z"/>'), 'Vận hành'],
+    ['emp', 'Nhân sự', I('<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7M17 4a4 4 0 010 8M22 21c0-3-2-5-5-6"/>')],
+    ['board', 'Board sprint', I('<rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="8" rx="1"/>'), 'Công việc'],
+    ['ts', 'Timesheet', I('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>')]];
+    let cur = 'dash';
+    function nav() {
+      let h = `<div class="logo"><svg width="104" height="38" viewBox="0 0 104 38"><svg width="30" height="34" y="2"><use href="#mk"/></svg><text x="38" y="29" font-family="Be Vietnam Pro,sans-serif" font-weight="700" font-size="26" fill="currentColor">Hezb</text></svg></div>`;
+      NAV.forEach(n => { if (n[3]) h += `<div class="grp">${n[3]}</div>`; h += `<button class="nv ${n[0] == ({ proj: 'projects', ticket: 'board' }[cur] || cur) ? 'on' : ''}" onclick="go('${n[0]}')">${n[2]}${n[1]}</button>` });
+      h += `<div class="me">${hx('Minh Trần')}<div>Minh Trần<small>project_manager</small></div></div>`; $('#nav').innerHTML = h
+    }
+    function go(p) { cur = p; nav(); $('#ttl').textContent = T[p]; $('#pg').innerHTML = V[p](); if (p == 'ts') rc(); scrollTo(0, 0) }
+    function toast(t) { const e = $('#toast'); e.textContent = t; e.classList.add('on'); clearTimeout(e.t); e.t = setTimeout(() => e.classList.remove('on'), 2200) }
+    function th() { const r = document.documentElement, d = getComputedStyle(r).getPropertyValue('--bg').trim() == '#0B1020'; r.dataset.theme = d ? 'light' : 'dark' }
+    $('#lf').onsubmit = e => { e.preventDefault(); $('#login').classList.add('hide'); $('#app').classList.remove('hide'); go('dash') };
+
+    const bars = [['Lan Phạm', 96], ['Hùng Nguyễn', 88], ['Mai Lê', 74], ['Đức Võ', 62], ['Thảo Đặng', 41]];
+    const proj = [['Cổng thanh toán Vina', 'On track', 'ok', 62, '14/10'], ['App đặt lịch Nova', 'Trễ 3 ngày', 'er', 48, '05/10'], ['Migrate ERP Sakura', 'Rủi ro', 'wn', 71, '30/10']];
+    const emps = [['Lan Phạm', 'HZ-0012', 'Full-time', 'Engineering', 'Active', 'ok'], ['Hùng Nguyễn', 'HZ-0018', 'Full-time', 'Engineering', 'Active', 'ok'], ['Mai Lê', 'HZ-0023', 'Part-time', 'QA', 'Active', 'ok'], ['Đức Võ', 'HZ-0031', 'Freelancer', 'Design', 'Active', 'ok'], ['Thảo Đặng', 'HZ-0044', 'Full-time', 'Engineering', 'Onboarding', 'pr'], ['Khôi Bùi', 'HZ-0009', 'Contractor', 'DevOps', 'Offboarding', 'wn']];
+    const cols = [['Todo', [['story', 'HZ-142', 'Đăng ký lịch hẹn theo khung giờ', 5, 'Mai Lê'], ['task', 'HZ-150', 'Cấu hình CI cho staging', 2, 'Khôi Bùi']]],
+    ['In progress', [['story', 'HZ-139', 'Màn hình thanh toán QR', 8, 'Lan Phạm'], ['bug', 'HZ-147', 'Lỗi múi giờ khi gửi nhắc lịch', 3, 'Hùng Nguyễn', 'Quá hạn 2 ngày']]],
+    ['In review', [['task', 'HZ-135', 'Tích hợp webhook đối soát', 5, 'Hùng Nguyễn']]],
+    ['Done', [['story', 'HZ-128', 'Đăng nhập & phân quyền', 8, 'Lan Phạm'], ['bug', 'HZ-131', 'Sai tổng tiền khi áp mã giảm', 2, 'Mai Lê']]]];
+    let tss = [['Lan Phạm', [8, 8, 9, 8, 7], 40, 'Leader', 2], ['Hùng Nguyễn', [8, 8, 8, 8, 8], 40, 'PM', 3], ['Mai Lê', [4, 4, 4, 4, 4], 20, 'Leader', 2], ['Đức Võ', [8, 6, 8, 8, 9], 39, 'Draft', 1]];
+    const S = ['Nháp', 'Leader duyệt', 'PM duyệt', 'Đã khóa'];
+    function steps(n) { return `<div class="step">` + S.map((s, i) => `<b class="${i < n ? 'd' : i == n ? 'c' : ''}">${s}</b>` + (i < 3 ? `<s class="${i < n - 1 ? 'd' : ''}"></s>` : '')).join('') + `</div>` }
+    function apr(i) { const t = tss[i]; t[4] = Math.min(t[4] + 1, 3); t[3] = t[4] == 3 ? 'Locked' : 'PM'; go('ts'); toast('Đã duyệt timesheet của ' + t[0]) }
+    function rej(i) { tss[i][4] = 0; tss[i][3] = 'Draft'; go('ts'); toast('Đã trả về nháp — người dùng sẽ được báo') }
+
+    const V = {
+      dash: () => `<div class="card strip"><div><span>Utilization kỳ này</span><b class="num">78%</b><em>+4% so với tuần trước</em></div><div><span>Issue đang mở</span><b class="num">34</b><span>6 quá hạn</span></div><div><span>Timesheet chờ duyệt</span><b class="num">7</b><span>2 quá 48 giờ</span></div><div><span>Milestone sắp đến hạn</span><b class="num">3</b><span>trong 14 ngày</span></div></div>
+<div class="two"><div class="card"><h3>Utilization theo nhân sự</h3><div class="bd">${bars.map(b => `<div class="bar ${b[1] > 90 ? 'hi' : ''}"><span>${b[0]}</span><div class="t"><i style="width:${b[1]}%"></i></div><b class="num">${b[1]}%</b></div>`).join('')}<p class="lock">Đỏ: vượt 90% capacity, cân nhắc giảm allocation.</p></div></div>
+<div class="card"><h3>Trạng thái timesheet</h3><div class="bd">${[['Nháp', 3, 'wn'], ['Chờ Leader', 4, 'pr'], ['Chờ PM', 3, 'pr'], ['Đã khóa', 12, 'ok']].map(s => `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--ln)"><span class="chip ${s[2]}">${s[0]}</span><b class="num">${s[1]}</b></div>`).join('')}</div></div></div>
+<div class="card ov"><h3>Sức khỏe dự án</h3><table><tr><th>Dự án</th><th>Tình trạng</th><th>Tiến độ sprint</th><th>Milestone kế</th></tr>${proj.map(p => `<tr><td><b>${p[0]}</b></td><td><span class="chip ${p[2]}">${p[1]}</span></td><td><div class="sp"><div class="pb"><i style="width:${p[3]}%"></i></div><span class="num">${p[3]}%</span></div></td><td class="num">${p[4]}</td></tr>`).join('')}</table></div>`,
+      emp: () => `<div class="tools"><button class="f on">Tất cả 48</button><button class="f">Active</button><button class="f">Onboarding</button><button class="f">Offboarding</button><span style="flex:1"></span><button class="btn sm" onclick="toast('Mở form tạo nhân sự')">+ Thêm nhân sự</button></div>
+<div class="card ov"><table><tr><th>Nhân sự</th><th>Mã</th><th>Loại</th><th>Phòng ban</th><th>Trạng thái</th><th>Rate</th></tr>${emps.map(e => `<tr><td>${who(e[0], e[0].toLowerCase().replace(/ /g, '.') + '@hezb.vn')}</td><td class="num">${e[1]}</td><td>${e[2]}</td><td>${e[3]}</td><td><span class="chip ${e[5]}">${e[4]}</span></td><td class="lock">🔒 Chỉ HR/Finance</td></tr>`).join('')}</table><div class="ch" style="border:0;border-top:1px solid var(--ln);font-weight:400;color:var(--mut);font-size:13px"><span>1–6 / 48</span><span class="tools"><button class="f">Trước</button><button class="f">Sau</button></span></div></div>`,
+    };
+    const T = { dash: 'Dashboard', projects: 'Dự án', proj: 'Cổng thanh toán Vina', board: 'Board sprint', ticket: 'Chi tiết ticket', ts: 'Timesheet', emp: 'Nhân sự' };
+    const ALL = cols.flatMap(c => c[1].map(i => [...i, c[0]]));
+    const sum = a => a.reduce((x, y) => x + y, 0);
+    const MB = [['Lan Phạm', 'Tech lead', 100, [38, 40, 41, 22], 160, 92], ['Hùng Nguyễn', 'Backend', 100, [40, 36, 40, 20], 160, 88], ['Mai Lê', 'QA', 50, [18, 20, 19, 10], 80, 100], ['Đức Võ', 'Designer', 40, [12, 16, 8, 0], 64, 75]];
+    const PJ = [['Cổng thanh toán Vina', 'Vina Pay', 'Minh Trần', 4, 840, 1200, 62, 'On track', 'ok'], ['App đặt lịch Nova', 'Nova Health', 'Quân Hoàng', 6, 410, 600, 48, 'Trễ 3 ngày', 'er'], ['Migrate ERP Sakura', 'Sakura JP', 'Minh Trần', 5, 990, 1100, 71, 'Rủi ro', 'wn']];
+    let tk = 'HZ-139', tf = 'all', tl = [
+      { e: 1, w: 'Minh Trần', t: '3 ngày trước', x: 'tạo ticket và gán cho <b>Lan Phạm</b>' },
+      { c: 1, w: 'Minh Trần', r: 'Author', t: '3 ngày trước', x: 'Cần hỗ trợ thanh toán QR theo chuẩn VietQR. Acceptance:<ul><li>Sinh mã QR theo số tiền</li><li>Polling trạng thái mỗi 3 giây</li></ul>' },
+      { e: 1, w: 'Lan Phạm', t: '2 ngày trước', x: 'đổi trạng thái <span class="chip">Todo</span> → <span class="chip pr">In progress</span>' },
+      { e: 1, l: 1, w: 'Lan Phạm', t: '1 ngày trước', x: 'log <b>6h</b> (billable) — "Sinh QR + unit test"' },
+      { c: 1, w: 'Lan Phạm', r: 'Member', t: '1 ngày trước', x: 'Đã xong phần sinh QR. Đang nối callback, cần <span class="mt">@Hùng Nguyễn</span> xác nhận format webhook: <code>POST /v1/payments/callback</code>', re: '👍 2' },
+      { c: 1, w: 'Hùng Nguyễn', r: 'Member', t: '5 giờ trước', x: 'Format ổn, chỉ cần thêm <code>idempotency_key</code> vào header. Mình đã cập nhật tài liệu.', re: '🎉 1' },
+      { e: 1, l: 1, w: 'Hùng Nguyễn', t: '5 giờ trước', x: 'log <b>1h 30m</b> (billable) — "Review webhook"' }];
+    const cm = x => `<div class="cm">${hx(x.w)}<div class="cb"><header><b>${x.w}</b> đã bình luận ${x.t}<span class="chip" style="margin-left:auto">${x.r}</span></header><div class="tx">${x.x}</div>${x.re ? `<footer><span class="chip">${x.re}</span><span class="chip">+ 😀</span></footer>` : ''}</div></div>`;
+    const ev = x => `<div class="ev ${x.l ? 'l' : ''}"><i></i><span><b style="color:var(--ink)">${x.w}</b> ${x.x} · ${x.t}</span></div>`;
+    function openT(k) { tk = k; tf = 'all'; go('ticket') }
+    function setF(f) { tf = f; go('ticket') }
+    function addC() { const v = $('#ci').value.trim().replace(/</g, '&lt;'); if (!v) return; tl.push({ c: 1, w: 'Minh Trần', r: 'Member', t: 'vừa xong', x: v }); go('ticket'); toast('Đã thêm bình luận') }
+    function closeM() { $('#md').className = 'hide' }
+    function openLog(k) { const m = $('#md'); m.className = 'mdl'; m.innerHTML = `<form onsubmit="saveLog(event)"><h3>Log work</h3><label>Issue<select id="lk">${ALL.map(i => `<option ${i[1] == (k || tk) ? 'selected' : ''}>${i[1]} · ${i[2]}</option>`).join('')}</select></label><div class="tools"><label style="flex:1">Ngày<input type="date" value="2026-10-01"></label><label style="flex:1">Thời gian<input id="lh" value="1h 30m" required></label></div><label>Mô tả<textarea id="ld" style="min-height:60px"></textarea></label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="lb" checked style="width:auto"> Tính phí (billable)</label><div class="tools" style="justify-content:end"><button type="button" class="btn ghost sm" onclick="closeM()">Hủy</button><button class="btn sm">Lưu log</button></div></form>` }
+    function saveLog(e) { e.preventDefault(); const h = $('#lh').value, k = $('#lk').value.split(' ')[0], d = $('#ld').value.replace(/</g, '&lt;'); if (k == tk) tl.push({ e: 1, l: 1, w: 'Minh Trần', t: 'vừa xong', x: `log <b>${h}</b> (${$('#lb').checked ? 'billable' : 'non-billable'})${d ? ' — "' + d + '"' : ''}` }); closeM(); if (cur == 'ticket') go('ticket'); toast('Đã log ' + h + ' vào ' + k) }
+    const D = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'], DT = ['28/09', '29/09', '30/09', '01/10', '02/10', '03/10', '04/10'];
+    const R = [['Cổng thanh toán Vina', [['HZ-139', 'Màn hình thanh toán QR', [4, 6, 0, 1.5, '', '', '']], ['HZ-135', 'Tích hợp webhook đối soát', [3.5, 2, 3, 3, '', '', '']]]], ['App đặt lịch Nova', [['HZ-147', 'Lỗi múi giờ khi gửi nhắc lịch', [0, 0, 5, 3, '', '', '']]]], ['Nội bộ', [['OPS-3', 'Họp & sinh hoạt team', [0.5, 0, 0, 0.5, '', '', '']]]]];
+    function rc() { let cs = Array(7).fill(0), g = 0; document.querySelectorAll('#pg tr').forEach(tr => { const ins = tr.querySelectorAll('.ti'); if (!ins.length) return; let s = 0; ins.forEach((x, i) => { const v = parseFloat(x.value) || 0; cs[i] += v; s += v }); tr.querySelector('.rt').textContent = s + 'h'; g += s }); document.querySelectorAll('.dc').forEach((c, i) => { c.textContent = cs[i] + 'h'; c.style.color = i < 5 && cs[i] > 8 ? 'var(--er)' : i < 4 && cs[i] < 8 ? 'var(--wn)' : '' }); $('#gs').textContent = g + 'h / 40h'; $('#pbw').style.width = Math.min(g / 40 * 100, 100) + '%' }
+    Object.assign(V, {
+      projects: () => `<div class="tools"><button class="f on">Đang chạy 3</button><button class="f">Hoàn thành</button><button class="f">Lưu trữ</button><span style="flex:1"></span><button class="btn sm" onclick="toast('Mở form tạo dự án từ proposal đã duyệt')">+ Tạo dự án</button></div>
+<div class="card ov"><table><tr><th>Dự án</th><th>Client</th><th>PM</th><th>Thành viên</th><th>Ngân sách (triệu ₫)</th><th>Tiến độ</th><th>Tình trạng</th></tr>${PJ.map((p, i) => `<tr class="cl" onclick="go('proj')"><td><b>${p[0]}</b></td><td>${p[1]}</td><td>${p[2]}</td><td class="num">${p[3]}</td><td><div class="sp"><div class="pb"><i style="width:${p[4] / p[5] * 100}%"></i></div><span class="num">${p[4]}/${p[5]}</span></div></td><td class="num">${p[6]}%</td><td><span class="chip ${p[8]}">${p[7]}</span></td></tr>`).join('')}</table></div>`,
+      proj: () => {
+        const tot = sum(MB.map(m => sum(m[3]))), pl = sum(MB.map(m => m[4])); return `<div class="sp"><button class="lnk" onclick="go('projects')">← Dự án</button><span class="chip ok">On track</span><span class="lock">Client: Vina Pay · PM: Minh Trần · 01/09 – 30/11/2026</span><span style="flex:1"></span><button class="btn sm ghost" onclick="go('board')">Mở board</button><button class="btn sm" onclick="toast('Mở form thêm thành viên (qua allocation)')">+ Thành viên</button></div>
+<div class="card strip"><div><span>Ngân sách đã dùng</span><b class="num">840 tr</b><span>70% / 1.200 tr</span></div><div><span>Giờ đã log</span><b class="num">${tot}h</b><em>billable 89%</em></div><div><span>Giờ kế hoạch tháng</span><b class="num">${pl}h</b><span>${Math.round(tot / pl * 100)}% đã dùng</span></div><div><span>Milestone kế</span><b class="num">14/10</b><span>Beta thanh toán QR</span></div></div>
+<div class="card ov"><div class="ch"><span>Log time theo thành viên · Tháng 9</span><button class="btn sm ghost" onclick="go('ts')">Xem timesheet</button></div><table><tr><th>Thành viên</th><th>Allocation</th><th>Tuần 1</th><th>Tuần 2</th><th>Tuần 3</th><th>Tuần 4*</th><th>Đã log / kế hoạch</th><th>Billable</th></tr>${MB.map(m => { const s = sum(m[3]); return `<tr><td>${who(m[0], m[1])}</td><td class="num">${m[2]}%</td>${m[3].map(h => `<td class="num">${h}h</td>`).join('')}<td><div class="sp"><div class="pb"><i style="width:${Math.min(s / m[4] * 100, 100)}%"></i></div><span class="num">${s}/${m[4]}h</span></div></td><td class="num">${m[5]}%</td></tr>` }).join('')}</table></div>
+<div class="two"><div class="card"><h3>Milestone</h3><div class="bd" style="display:grid;gap:10px">${[['Alpha — đăng nhập & thanh toán thẻ', 'Đã nghiệm thu', 'ok'], ['Beta — thanh toán QR', '14/10 · đang làm', 'pr'], ['Go-live', '30/11 · chưa bắt đầu', '']].map(x => `<div style="display:flex;justify-content:space-between;gap:8px"><span>${x[0]}</span><span class="chip ${x[2]}">${x[1]}</span></div>`).join('')}</div></div>
+<div class="card"><h3>Issue theo trạng thái</h3><div class="bd" style="display:grid;gap:10px">${cols.map(c => `<div style="display:flex;justify-content:space-between"><span>${c[0]}</span><b class="num">${c[1].length}</b></div>`).join('')}</div></div></div>`
+      },
+      board: () => `<div class="card"><div class="bd sp"><div><b>Sprint 14 · Cổng thanh toán Vina</b><div class="lock">23/09 – 07/10 · còn 6 ngày</div></div><div class="pb"><i style="width:62%"></i></div><b class="num">21/34 điểm</b><button class="btn sm" onclick="toast('Mở form tạo issue')">+ Tạo issue</button></div></div>
+<div class="cols">${cols.map(c => `<div class="col"><h4>${c[0]}<span class="num">${c[1].length}</span></h4>${c[1].map(i => `<div class="is" tabindex="0" style="cursor:pointer" onclick="openT('${i[1]}')"><div class="m"><span class="k"><i class="${i[0]}"></i>${i[1]}</span><span class="num">${i[3]} đ</span></div><p>${i[2]}</p><div class="m">${hx(i[4])}<span>${i[5] ? `<span class="chip er">${i[5]}</span> ` : ''}💬 ${i[1] == 'HZ-139' ? 3 : 1}</span></div></div>`).join('')}</div>`).join('')}</div>`,
+      ticket: () => {
+        const i = ALL.find(x => x[1] == tk) || ALL[0], f = tl.filter(x => tf == 'all' || (tf == 'c' && x.c) || (tf == 'l' && x.l) || (tf == 'e' && x.e && !x.l));
+        return `<div class="lock"><button class="lnk" onclick="go('board')">Board</button> / ${i[1]}</div>
+<div class="tk"><div style="display:grid;gap:16px"><div><div class="k" style="margin-bottom:6px"><i class="${i[0]}"></i><b>${i[1]}</b><span class="chip pr">${i[6]}</span>${i[5] ? `<span class="chip er">${i[5]}</span>` : ''}</div><h2 style="font-size:22px;font-weight:600">${i[2]}</h2></div>
+<div class="tools">${[['all', 'Tất cả'], ['c', 'Bình luận'], ['e', 'Lịch sử thay đổi'], ['l', 'Log work']].map(t => `<button class="f ${tf == t[0] ? 'on' : ''}" onclick="setF('${t[0]}')">${t[1]}</button>`).join('')}</div>
+<div class="tl2">${f.map(x => x.c ? cm(x) : ev(x)).join('')}<div class="cm">${hx('Minh Trần')}<div class="cb"><div class="tx"><textarea id="ci" placeholder="Viết bình luận… dùng @ để nhắc thành viên"></textarea></div><footer style="justify-content:space-between;align-items:center"><span class="lock">Hỗ trợ Markdown · kéo thả file đính kèm</span><span class="tools"><button class="btn sm ghost" onclick="openLog()">Log work</button><button class="btn sm" onclick="addC()">Bình luận</button></span></footer></div></div></div></div>
+<div class="card"><dl class="kv"><dt>Trạng thái</dt><dd><span class="chip pr">${i[6]}</span></dd><dt>Assignee</dt><dd>${who(i[4], '')}</dd><dt>Reporter</dt><dd>Minh Trần</dd><dt>Sprint</dt><dd>Sprint 14</dd><dt>Điểm</dt><dd class="num">${i[3]}</dd><dt>Hạn</dt><dd class="num">${i[5] ? '29/09 (quá hạn)' : '07/10'}</dd><dt>Thời gian</dt><dd><div class="pb"><i style="width:72%"></i></div><div class="lock" style="margin-top:4px">Log 11h 30m · ước tính 16h</div></dd></dl><div class="bd" style="border-top:1px solid var(--ln)"><button class="btn sm" style="width:100%" onclick="openLog()">+ Log work</button></div></div></div>`
+      },
+      ts: () => `<div class="tools"><button class="ib" aria-label="Tuần trước">‹</button><b>28/09 – 04/10/2026</b><button class="ib" aria-label="Tuần sau">›</button><button class="f on">Tuần</button><button class="f">Tháng</button><span style="flex:1"></span><button class="btn sm ghost" onclick="toast('Đã sao chép issue từ tuần trước')">Sao chép tuần trước</button><button class="btn sm ghost" onclick="openLog()">+ Thêm issue</button><button class="btn sm" onclick="toast('Đã gửi timesheet cho Leader duyệt')">Gửi duyệt</button></div>
+<div class="card ov"><table><tr><th style="min-width:280px">Issue</th>${D.map((d, i) => `<th class="${i == 3 ? 'tdy' : ''}" style="text-align:center">${d}<br><span class="num">${DT[i]}</span></th>`).join('')}<th>Tổng</th></tr>${R.map(g => `<tr class="gr"><td colspan="9">${g[0]}</td></tr>` + g[1].map(r => `<tr><td><span class="chip pr">${r[0]}</span> ${r[1]}</td>${r[2].map((h, i) => `<td class="${i == 3 ? 'tdy' : ''}" style="text-align:center"><input class="ti num" value="${h}" oninput="rc()" aria-label="${r[0]} ${D[i]}"></td>`).join('')}<td class="num rt"></td></tr>`).join('')).join('')}<tr><td><b>Tổng theo ngày</b></td>${D.map(() => '<td class="num dc" style="text-align:center"></td>').join('')}<td></td></tr></table></div>
+<div class="card bd sp"><div><span class="lock">Tổng tuần</span><b class="num" id="gs" style="display:block;font-size:22px"></b></div><div class="pb"><i id="pbw"></i></div>${steps(0)}</div>
+<p class="lock">Ô vàng: ngày đã qua chưa đủ 8h · ô đỏ: vượt 8h. Giờ chỉ được tính vào kỳ lương/hóa đơn sau khi PM duyệt.</p>`});
+  </script>
+  <style>
+    select,
+    textarea {
+      font: inherit;
+      padding: 9px 12px;
+      border: 1px solid var(--ln);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--ink);
+      width: 100%
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical
+    }
+
+    .is {
+      cursor: pointer
+    }
+
+    .is:hover {
+      border-color: var(--pri)
+    }
+
+    tr.rw {
+      cursor: pointer
+    }
+
+    tr.rw:hover td {
+      background: var(--bg)
+    }
+
+    .ov2 {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, .5);
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      z-index: 9
+    }
+
+    .mdl {
+      width: 100%;
+      max-width: 460px;
+      max-height: 92vh;
+      overflow: auto
+    }
+
+    .g {
+      display: grid;
+      gap: 12px
+    }
+
+    .g2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px
+    }
+
+    code {
+      background: var(--bg);
+      border: 1px solid var(--ln);
+      border-radius: 4px;
+      padding: 0 5px;
+      font-size: 12px
+    }
+
+    .mn {
+      color: var(--pri);
+      font-weight: 500
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      border-bottom: 1px solid var(--ln)
+    }
+
+    .tabs button {
+      border: 0;
+      background: none;
+      padding: 8px 14px;
+      color: var(--mut);
+      font-weight: 500;
+      border-bottom: 2px solid transparent
+    }
+
+    .tabs button.on {
+      color: var(--ink);
+      border-color: var(--cy)
+    }
+
+    .ci {
+      width: 54px;
+      text-align: center;
+      padding: 6px 4px;
+      background: var(--sf)
+    }
+
+    .we {
+      background: var(--bg)
+    }
+
+    .td {
+      box-shadow: inset 0 2px 0 var(--cy)
+    }
+
+    .sg {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 20px;
+      align-items: start
+    }
+
+    .tl {
+      position: relative;
+      display: grid;
+      gap: 14px
+    }
+
+    .tl:before {
+      content: "";
+      position: absolute;
+      left: 16px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--ln)
+    }
+
+    .cm {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      position: relative
+    }
+
+    .cb {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid var(--ln);
+      border-radius: 10px;
+      background: var(--sf);
+      position: relative
+    }
+
+    .cb:before {
+      content: "";
+      position: absolute;
+      left: -6px;
+      top: 14px;
+      width: 10px;
+      height: 10px;
+      background: var(--bg);
+      border: 1px solid var(--ln);
+      border-right: 0;
+      border-top: 0;
+      transform: rotate(45deg)
+    }
+
+    .chd {
+      background: var(--bg);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--ln);
+      border-radius: 10px 10px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px
+    }
+
+    .cbd {
+      padding: 12px 14px;
+      overflow-wrap: anywhere
+    }
+
+    .rx {
+      display: flex;
+      gap: 6px;
+      padding: 0 14px 10px
+    }
+
+    .rx .f {
+      padding: 1px 10px
+    }
+
+    .rx .f.on2 {
+      background: var(--pri-s);
+      border-color: var(--pri)
+    }
+
+    .ev {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-size: 13px;
+      color: var(--mut);
+      position: relative
+    }
+
+    .ev i {
+      width: 34px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      background: var(--bg);
+      font-style: normal;
+      position: relative
+    }
+
+    .ev b {
+      color: var(--ink)
+    }
+
+    .side {
+      display: grid;
+      gap: 14px
+    }
+
+    .side dl {
+      display: grid;
+      grid-template-columns: 90px 1fr;
+      gap: 10px 8px;
+      align-items: center;
+      font-size: 13px
+    }
+
+    .side dt {
+      color: var(--mut)
+    }
+
+    .cmp .tabs {
+      border: 0
+    }
+
+    @media(max-width:860px) {
+      .sg {
+        grid-template-columns: 1fr
+      }
+
+      .g2 {
+        grid-template-columns: 1fr
+      }
+    }
+  </style>
+  <script>
+    const TT = { pd: 'Chi tiết dự án', tk: 'Ticket' }, HL = { pd: 'proj', tk: 'board' };
+    NAV.length = 0; NAV.push(['dash', 'Dashboard', I('<path d="M3 13h8V3H3zM13 21h8V11h-8zM13 3v6h8V3zM3 21h8v-6H3z"/>'), 'Tổng quan'],
+      ['proj', 'Dự án', I('<path d="M3 7l9-4 9 4-9 4zM3 12l9 4 9-4M3 17l9 4 9-4"/>'), 'Dự án'],
+      ['board', 'Board & ticket', I('<rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="4" height="8" rx="1"/>')],
+      ['ts', 'Timesheet của tôi', I('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'), 'Chấm công'],
+      ['tsa', 'Duyệt timesheet', I('<path d="M5 12l5 5 9-10"/>')],
+      ['emp', 'Nhân sự', I('<circle cx="9" cy="8" r="4"/><path d="M2 21c0-4 3-7 7-7s7 3 7 7"/>'), 'Nhân sự']);
+    V.tsa = V.ts;
+    function go(p) { cur = HL[p] || p; nav(); $('#ttl').textContent = (NAV.find(n => n[0] == p) || [0, TT[p]])[1]; $('#pg').innerHTML = V[p](); scrollTo(0, 0) }
+    function apr(i) { const t = tss[i]; t[4] = Math.min(t[4] + 1, 3); t[3] = t[4] == 3 ? 'Locked' : 'PM'; go('tsa'); toast('Đã duyệt timesheet của ' + t[0]) }
+    function rej(i) { tss[i][4] = 0; tss[i][3] = 'Draft'; go('tsa'); toast('Đã trả về nháp') }
+    const sel = (id, a, v) => `<select id="${id}">${a.map(x => `<option ${x == v ? 'selected' : ''}>${x}</option>`).join('')}</select>`;
+    const mdr = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<code>$1</code>').replace(/@([\w.]+)/g, '<span class="mn">@$1</span>').replace(/#(HZ-\d+)/g, '<span class="mn">#$1</span>').replace(/\n/g, '<br>');
+    function md(t, b, ok, f) { const e = document.createElement('div'); e.className = 'ov2'; e.innerHTML = `<form class="mdl card"><h3>${t}</h3><div class="bd g">${b}</div><div class="ch" style="border:0;border-top:1px solid var(--ln);justify-content:flex-end;gap:8px"><button type="button" class="btn sm ghost" onclick="this.closest('.ov2').remove()">Hủy</button><button class="btn sm">${ok}</button></div></form>`; e.querySelector('form').onsubmit = x => { x.preventDefault(); f(e); e.remove() }; document.body.append(e) }
+    const SC = { Todo: '', 'In progress': 'pr', 'In review': 'wn', Done: 'ok' }, ST = Object.keys(SC), MEM = ['Minh Trần', 'Lan Phạm', 'Hùng Nguyễn', 'Mai Lê', 'Đức Võ'];
+    let TKS = [['HZ-139', 'story', 'Màn hình thanh toán QR', 'Lan Phạm', 'In progress', 14, 20], ['HZ-147', 'bug', 'Lỗi múi giờ khi gửi nhắc lịch', 'Hùng Nguyễn', 'In progress', 3, 4], ['HZ-135', 'task', 'Tích hợp webhook đối soát', 'Hùng Nguyễn', 'In review', 9, 10], ['HZ-142', 'story', 'Đăng ký lịch hẹn theo khung giờ', 'Mai Lê', 'Todo', 0, 12], ['HZ-150', 'task', 'Cấu hình CI cho staging', 'Khôi Bùi', 'Todo', 0, 3], ['HZ-128', 'story', 'Đăng nhập & phân quyền', 'Lan Phạm', 'Done', 16, 16]];
+    let MB = [['Minh Trần', 'PM', 30, 12, 48, 120, 52], ['Lan Phạm', 'Developer', 100, 38, 152, 480, 310], ['Hùng Nguyễn', 'Developer', 80, 34, 141, 380, 244], ['Mai Lê', 'QA', 50, 19, 76, 190, 118], ['Đức Võ', 'Designer', 40, 16, 60, 150, 97]];
+    let WL = [['Lan Phạm', 'HZ-139', '4h', 'Dựng form QR + countdown', 'Hôm nay'], ['Hùng Nguyễn', 'HZ-147', '1h 30m', 'Tái hiện lỗi múi giờ UTC+7', 'Hôm nay'], ['Mai Lê', 'HZ-135', '3h', 'Test case đối soát', 'Hôm qua']];
+    let R = [{ k: 'HZ-139', t: 'Màn hình thanh toán QR', h: [2, 3, 4, 2, 0, 0, 0] }, { k: 'HZ-135', t: 'Tích hợp webhook đối soát', h: [1, 0, 2, 1, 0, 0, 0] }, { k: 'HZ-000', t: 'Họp & quản lý dự án (non-billable)', h: [1, 1, 1, 1, 0, 0, 0] }];
+    let TK = TKS[0], pt = 0;
+    const CMS = { 'HZ-139': [{ t: 'c', w: 'Minh Trần', a: '3 ngày trước', o: 1, b: 'Cần làm màn QR theo thiết kế mới. Yêu cầu: countdown **5 phút**, tự refresh khi hết hạn, theo dõi trạng thái qua webhook (#HZ-135).', r: { '👍': [2, 0] } }, { t: 'e', i: '⇄', w: 'Minh Trần', x: 'chuyển trạng thái từ <b>Todo</b> sang <b>In progress</b>', a: '3 ngày trước' }, { t: 'e', i: '👤', w: 'Minh Trần', x: 'giao ticket cho <b>Lan Phạm</b>', a: '3 ngày trước' }, { t: 'c', w: 'Lan Phạm', a: '2 ngày trước', b: 'Mình dùng `qrcode.react`, đã có PR #88. @Hùng.Nguyễn cho mình xin payload webhook mẫu nhé.', r: { '🎉': [1, 0] } }, { t: 'e', i: '⏱', w: 'Lan Phạm', x: 'đã log <b>4h</b> — Dựng form QR + countdown', a: 'hôm nay' }, { t: 'c', w: 'Hùng Nguyễn', a: '5 giờ trước', b: 'Payload đã đưa vào docs. Lưu ý field `paid_at` trả về UTC.', r: {} }] };
+    const cmL = () => CMS[TK.k] || (CMS[TK.k] = []);
+    function tk(k) { TK = TKS.find(t => t[0] == k) || TKS[0]; go('tk') }
+    function pd() { go('pd') }
+    function parseH(s) { const h = /(\d+(?:\.\d+)?)\s*h/.exec(s), m = /(\d+)\s*m/.exec(s); return (h ? +h[1] : 0) + (m ? +m[1] / 60 : 0) || +s || 0 }
+    function logW(k, mem) {
+      md('Log work', `<label>Ticket${sel('lt', TKS.map(t => t[0] + ' · ' + t[2]), k ? TKS.find(t => t[0] == k).join ? TKS.find(t => t[0] == k)[0] + ' · ' + TKS.find(t => t[0] == k)[2] : '' : '')}</label><div class="g2"><label>Thành viên${sel('lm', MEM, mem || 'Minh Trần')}</label><label>Ngày<input id="ld" type="date" value="2026-10-01"></label></div><label>Thời gian đã làm<input id="lh" placeholder="vd: 2h 30m" value="1h" required></label><label>Mô tả<textarea id="lx" placeholder="Bạn đã làm gì?"></textarea></label><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="lb" checked style="width:auto">Billable</label><span class="lock">Log hộ người khác sẽ được ghi vào audit log.</span>`, 'Log work', e => {
+        const key = $('#lt').value.split(' · ')[0], mm = $('#lm').value, h = parseH($('#lh').value), x = $('#lx').value || '—', di = Math.round((new Date($('#ld').value) - new Date('2026-09-28')) / 864e5); if (!h) return;
+        const b = MB.find(m => m[0] == mm); b[3] += h; b[4] += h; b[6] += h; const t = TKS.find(t => t[0] == key); t[5] += h; WL.unshift([mm, key, $('#lh').value, x, 'Hôm nay']);
+        if (mm == 'Minh Trần' && di >= 0 && di < 7) { let r = R.find(r => r.k == key); if (!r) R.push(r = { k: key, t: t[2], h: [0, 0, 0, 0, 0, 0, 0] }); r.h[di] += h }
+        (CMS[key] || (CMS[key] = [])).push({ t: 'e', i: '⏱', w: mm, x: `đã log <b>${$('#lh').value}</b> — ${x}`, a: 'vừa xong' }); go(cur == 'board' && $('#ttl').textContent == 'Ticket' ? 'tk' : cur == 'proj' ? 'pd' : cur); toast('Đã log ' + $('#lh').value + ' cho ' + key)
+      })
+    }
+    function newT() { md('Tạo ticket', `<label>Tiêu đề<input id="nt" required placeholder="Ticket này cần làm gì?"></label><div class="g2"><label>Loại${sel('ny', ['story', 'task', 'bug', 'epic'])}</label><label>Ưu tiên${sel('np', ['Cao', 'Trung bình', 'Thấp'])}</label></div><label>Mô tả<textarea id="nd"></textarea></label><div class="g2"><label>Assignee${sel('na', MEM)}</label><label>Ước lượng (giờ)<input id="ne" type="number" value="4"></label></div>`, 'Tạo ticket', () => { const k = 'HZ-' + (153 + TKS.length - 6); TKS.unshift([k, $('#ny').value, $('#nt').value, $('#na').value, 'Todo', 0, +$('#ne').value]); CMS[k] = [{ t: 'e', i: '＋', w: 'Minh Trần', x: 'đã tạo ticket', a: 'vừa xong' }]; go('pd'); toast('Đã tạo ' + k) }) }
+    function upd(r, d, v) { R[r].h[d] = +v || 0; tot() }
+    function tot() { let g = 0; for (let d = 0; d < 7; d++) { const s = R.reduce((a, r) => a + r.h[d], 0); g += s; $('#dt' + d).textContent = s || '–' } R.forEach((r, i) => $('#rt' + i).textContent = r.h.reduce((a, b) => a + b, 0)); $('#gt').textContent = g; $('#gb').style.width = Math.min(g / 40 * 100, 100) + '%' }
+    function rx(i, k) { const r = cmL()[i].r, v = r[k] || (r[k] = [0, 0]); v[1] ? (v[0]--, v[1] = 0) : (v[0]++, v[1] = 1); go('tk') }
+    function pv(on) { $('#cmt').classList.toggle('hide', on); $('#pvw').classList.toggle('hide', !on); $('#tw').classList.toggle('on', !on); $('#tp').classList.toggle('on', on); if (on) $('#pvw').innerHTML = mdr($('#cmt').value) || '<span class="lock">Chưa có nội dung để xem trước</span>' }
+    function cmt(close) { const v = $('#cmt').value.trim(); if (!v) return toast('Hãy nhập nội dung bình luận'); cmL().push({ t: 'c', w: 'Minh Trần', a: 'vừa xong', b: v, r: {} }); if (close) { TK[4] = 'In review'; cmL().push({ t: 'e', i: '⇄', w: 'Minh Trần', x: 'chuyển trạng thái sang <b>In review</b>', a: 'vừa xong' }) } go('tk') }
+    function ss(v) { cmL().push({ t: 'e', i: '⇄', w: 'Minh Trần', x: `chuyển trạng thái từ <b>${TK[4]}</b> sang <b>${v}</b>`, a: 'vừa xong' }); TK[4] = v; go('tk') }
+    function tab(i) { pt = i; go('pd') }
+    const bar = (a, b) => `<div class="pb"><i style="width:${Math.min(a / b * 100, 100)}%"></i></div>`;
+    V.proj = () => `<div class="tools"><button class="f on">Đang chạy 3</button><button class="f">Hoàn thành</button><button class="f">Từ proposal</button><span style="flex:1"></span><button class="btn sm" onclick="toast('Dự án mới được tạo khi Director duyệt proposal')">+ Dự án mới</button></div>
+<div class="card ov"><table><tr><th>Dự án</th><th>Khách hàng</th><th>PM</th><th>Tình trạng</th><th>Giờ dùng / ngân sách</th><th>Hạn</th></tr>${[['Cổng thanh toán Vina', 'Vina Pay', 'Minh Trần', 'On track', 'ok', 812, 1320, '30/10'], ['App đặt lịch Nova', 'Nova Clinic', 'Thu Hà', 'Trễ 3 ngày', 'er', 590, 640, '05/10'], ['Migrate ERP Sakura', 'Sakura JP', 'Minh Trần', 'Rủi ro', 'wn', 1180, 1600, '30/11']].map(p => `<tr class="rw" onclick="pd()"><td><b>${p[0]}</b><small style="display:block;color:var(--mut)">5 thành viên</small></td><td>${p[1]}</td><td>${who(p[2], 'PM')}</td><td><span class="chip ${p[4]}">${p[3]}</span></td><td><div class="sp"><div class="pb"><i style="width:${p[5] / p[6] * 100}%"></i></div><span class="num">${p[5]}/${p[6]}h</span></div></td><td class="num">${p[7]}</td></tr>`).join('')}</table></div>`;
+    V.pd = () => `<div class="card"><div class="bd sp"><div><b style="font-size:18px">Cổng thanh toán Vina</b><div class="lock">Vina Pay · PM: Minh Trần · từ proposal #P-021</div></div><span class="chip ok">On track</span><div class="pb"><i style="width:62%"></i></div><b class="num">812 / 1.320 giờ</b><button class="btn sm ghost" onclick="toast('Mở form quản lý allocation')">Quản lý allocation</button></div>
+<div class="bd sp" style="border-top:1px solid var(--ln)">${[['M1 Thiết kế & API', 'Đã nghiệm thu', 'ok'], ['M2 Thanh toán QR', 'Đang làm · 14/10', 'pr'], ['M3 UAT & Go-live', '30/10', '']].map(m => `<span>${m[0]} <span class="chip ${m[2]}">${m[1]}</span></span>`).join('')}</div></div>
+<div class="tabs"><button class="${pt == 0 ? 'on' : ''}" onclick="tab(0)">Thành viên & log time</button><button class="${pt == 1 ? 'on' : ''}" onclick="tab(1)">Ticket (${TKS.length})</button></div>
+${pt == 0 ? `<div class="card ov"><div class="ch"><span>Giờ làm theo thành viên</span><button class="btn sm" onclick="logW(0)">+ Log giờ</button></div><table><tr><th>Thành viên</th><th>Allocation</th><th>Tuần này / capacity</th><th>Tháng này</th><th>Tổng / phân bổ</th><th></th></tr>${MB.map(m => `<tr><td>${who(m[0], m[1])}</td><td class="num">${m[2]}%</td><td><div class="sp">${bar(m[3], m[2] * .4)}<span class="num">${m[3]}/${m[2] * .4}h</span></div></td><td class="num">${m[4]}h</td><td><div class="sp">${bar(m[6], m[5])}<span class="num">${Math.round(m[6])}/${m[5]}h</span></div></td><td><button class="lnk" onclick="logW(0,'${m[0]}')">Log</button></td></tr>`).join('')}</table></div>
+<div class="card"><h3>Log work gần đây</h3><div class="bd g">${WL.slice(0, 5).map(w => `<div class="who">${hx(w[0])}<div><b>${w[0]}</b> · <span class="mn">#${w[1]}</span> · <b class="num">${w[2]}</b><small>${w[3]} — ${w[4]}</small></div></div>`).join('')}</div></div>`
+        : `<div class="card ov"><div class="ch"><span>Ticket của dự án</span><button class="btn sm" onclick="newT()">+ Tạo ticket</button></div><table><tr><th>Ticket</th><th>Assignee</th><th>Trạng thái</th><th>Đã log / ước lượng</th></tr>${TKS.map(t => `<tr class="rw" onclick="tk('${t[0]}')"><td><span class="k"><i class="${t[1]}"></i><span class="num">${t[0]}</span></span> ${t[2]}</td><td>${t[3]}</td><td><span class="chip ${SC[t[4]]}">${t[4]}</span></td><td class="num">${t[5]}/${t[6]}h</td></tr>`).join('')}</table></div>`}`;
+    V.ts = () => {
+      const D = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'], N = [28, 29, 30, 1, 2, 3, 4]; return `<div class="tools"><button class="f" aria-label="Tuần trước">‹</button><b>28/09 – 04/10/2026</b><button class="f" aria-label="Tuần sau">›</button><span class="chip wn">Nháp</span><span style="flex:1"></span><button class="btn sm ghost" onclick="toast('Đã gửi timesheet cho Leader duyệt')">Gửi duyệt</button><button class="btn sm" onclick="logW()">+ Log work</button></div>
+<div class="card ov"><table><tr><th style="min-width:260px">Ticket</th>${D.map((d, i) => `<th class="${i > 4 ? 'we' : ''} ${i == 3 ? 'td' : ''}" style="text-align:center">${d}<small style="display:block;font-weight:400">${N[i]}</small></th>`).join('')}<th style="text-align:center">Tổng</th></tr>
+${R.map((r, i) => `<tr><td><span class="num mn">${r.k}</span> ${r.t}</td>${r.h.map((h, d) => `<td class="${d > 4 ? 'we' : ''}" style="text-align:center"><input class="ci" type="number" min="0" max="24" step="0.5" value="${h || ''}" placeholder="–" aria-label="${r.k} ${D[d]}" oninput="upd(${i},${d},this.value)"></td>`).join('')}<td class="num" style="text-align:center"><b id="rt${i}"></b></td></tr>`).join('')}
+<tr><td><b>Tổng mỗi ngày</b></td>${D.map((d, i) => `<td class="num ${i > 4 ? 'we' : ''}" style="text-align:center"><b id="dt${i}"></b></td>`).join('')}<td class="num" style="text-align:center"><b id="gt"></b>/40</td></tr></table></div>
+<div class="sp"><span class="lock">Tiến độ tuần</span><div class="pb"><i id="gb"></i></div></div><p class="lock">Mỗi ô là giờ log trên ticket đó. Dùng “Log work” để thêm ticket khác hoặc ghi mô tả.</p>`};
+    setTimeout(() => { }, 0);
+    const _g = go; go = function (p) { _g(p); if (p == 'ts') tot() };
+    V.tk = () => {
+      const c = cmL(), t = TK; return `<div><div class="k" style="margin-bottom:4px"><i class="${t[1]}"></i><span class="num lock">${t[0]}</span><button class="lnk" onclick="pd()">Cổng thanh toán Vina</button></div><h2 style="font-size:22px;font-weight:600">${t[2]}</h2></div>
+<div class="sg"><div style="display:grid;gap:16px;min-width:0"><div class="cm">${hx('Minh Trần')}<div class="cb"><div class="chd"><span><b>Mô tả</b></span></div><div class="cbd">Người dùng quét QR để thanh toán trong tiến trình đặt lịch. Xem thiết kế Figma và tiêu chí chấp nhận ở comment bên dưới.</div></div></div>
+<div class="tl">${c.length ? c.map((x, i) => x.t == 'e' ? `<div class="ev"><i>${x.i}</i><span><b>${x.w}</b> ${x.x} · ${x.a}</span></div>` : `<div class="cm">${hx(x.w)}<div class="cb"><div class="chd"><span><b>${x.w}</b> <span class="lock">đã bình luận ${x.a}</span></span>${x.o ? '<span class="chip pr">Người báo</span>' : ''}</div><div class="cbd">${mdr(x.b)}</div><div class="rx">${Object.entries(x.r || {}).map(([k, v]) => `<button class="f ${v[1] ? 'on2' : ''}" onclick="rx(${i},'${k}')">${k} ${v[0]}</button>`).join('')}<button class="f" onclick="rx(${i},'👍')" aria-label="Thêm reaction">＋</button></div></div></div>`).join('') : '<p class="lock" style="padding-left:46px">Chưa có hoạt động nào.</p>'}
+<div class="cm cmp">${hx('Minh Trần')}<div class="cb"><div class="chd"><div class="tabs"><button id="tw" class="on" type="button" onclick="pv(0)">Viết</button><button id="tp" type="button" onclick="pv(1)">Xem trước</button></div><span class="lock">**đậm** · \`code\` · @tên · #HZ-123</span></div><div class="cbd g"><textarea id="cmt" placeholder="Viết bình luận, @nhắc ai đó hoặc #liên kết ticket…"></textarea><div id="pvw" class="hide"></div><div class="tools" style="justify-content:flex-end"><button class="btn sm ghost" onclick="toast('Chọn file đính kèm (private bucket)')">Đính kèm</button><button class="btn sm ghost" onclick="cmt(1)">Comment & chuyển In review</button><button class="btn sm" onclick="cmt(0)">Comment</button></div></div></div></div></div></div>
+<aside class="side card" style="position:static;height:auto;border-right:1px solid var(--ln);padding:16px;display:grid"><dl><dt>Trạng thái</dt><dd><select onchange="ss(this.value)">${ST.map(s => `<option ${s == t[4] ? 'selected' : ''}>${s}</option>`).join('')}</select></dd><dt>Assignee</dt><dd>${who(t[3], '')}</dd><dt>Reporter</dt><dd>Minh Trần</dd><dt>Sprint</dt><dd>Sprint 14</dd><dt>Ưu tiên</dt><dd><span class="chip er">Cao</span></dd><dt>Nhãn</dt><dd><span class="chip">payment</span> <span class="chip">frontend</span></dd><dt>Liên kết</dt><dd><span class="mn">PR #88</span> · <span class="mn">#HZ-135</span></dd></dl>
+<div style="border-top:1px solid var(--ln);padding-top:12px;display:grid;gap:8px"><div class="ch" style="padding:0;border:0"><b>Thời gian</b><button class="btn sm" onclick="logW('${t[0]}')">Log work</button></div>${bar(t[5], t[6])}<span class="num lock">Đã log ${Math.round(t[5] * 10) / 10}h · ước lượng ${t[6]}h · còn ${Math.max(0, Math.round((t[6] - t[5]) * 10) / 10)}h</span></div></aside></div>`
+    };
+  </script>
+</body>
+
+</html>
