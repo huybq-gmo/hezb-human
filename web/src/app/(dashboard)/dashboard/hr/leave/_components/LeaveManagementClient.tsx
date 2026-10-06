@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -46,12 +46,16 @@ export function LeaveManagementClient({
   const [create, setCreate] = useState(false)
   const [reject, setReject] = useState<LeaveRequest | null>(null)
   const [busy, setBusy] = useState(false)
-  const [status, setStatus] = useState('')
+  const params=useSearchParams()
+  const status=params.get('status') || ''
+  function setStatus(value: string) {
+    const query=new URLSearchParams(params.toString()); query.delete('page')
+    if(value) query.set('status',value); else query.delete('status')
+    router.replace('?' + query.toString())
+  }
   const [error, setError] = useState('')
   const canReview = user.hasRole('company_owner', 'hr_admin')
-  const requests = initialRequests.filter(
-    (request) => !status || request.status === status,
-  )
+  const requests = initialRequests
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!currentEmployee) return

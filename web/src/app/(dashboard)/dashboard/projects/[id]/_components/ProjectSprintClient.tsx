@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
@@ -99,17 +100,18 @@ export function ProjectSprintClient({
                   </div>
                   <div className="toolbar">
                     <Badge tone={sprint.status === 'completed' ? 'ok' : sprint.status === 'active' ? 'pr' : 'neutral'}>{sprint.status === 'planned' ? 'Lên kế hoạch' : sprint.status === 'active' ? 'Đang chạy' : 'Hoàn tất'}</Badge>
+                    <Link className="btn sm ghost" href={`/dashboard/issues?project=${projectId}&sprint=${sprint.id}`}>Mở board</Link>
                     {canManage && <Button size="sm" variant="ghost" aria-label={`Sửa Sprint ${sprint.name}`} onClick={() => setEditing(sprint)}><Pencil size={14} /></Button>}
                   </div>
                 </div>
-                {canAssign && issues.length > 0 && (
+                {issues.some((issue) => issue.sprint_id === sprint.id) ? (
                   <div className="table-scroll">
                     <table>
                       <thead><tr><th>Ticket</th><th>Trạng thái</th><th>Thuộc Sprint</th></tr></thead>
-                      <tbody>{issues.map((issue) => (
+                      <tbody>{issues.filter((issue) => issue.sprint_id === sprint.id).map((issue) => (
                         <tr key={issue.id}>
-                          <td>{issue.title}</td><td>{issue.status}</td>
-                          <td><select aria-label={`Sprint của ${issue.title}`} disabled={busy} value={issue.sprint_id || ''} onChange={(event) => void assignIssue(issue.id, event.target.value)}>
+                          <td><Link className="text-link" href={`/dashboard/issues/${issue.id}`}>{issue.title}</Link></td><td>{issue.status}</td>
+                          <td><select aria-label={`Sprint của ${issue.title}`} disabled={busy || !canAssign} value={issue.sprint_id || ''} onChange={(event) => void assignIssue(issue.id, event.target.value)}>
                             <option value="">Backlog / chưa gán</option>
                             {sprints.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
                           </select></td>
@@ -117,11 +119,23 @@ export function ProjectSprintClient({
                       ))}</tbody>
                     </table>
                   </div>
-                )}
+                ) : <p className="card-body muted">Chưa có ticket trong Sprint này.</p>}
               </section>
             ))}
           </div>
         )}
+      </Card>
+      <Card title="Backlog / chưa gán Sprint" action={<Link className="text-link" href={`/dashboard/issues?project=${projectId}&sprint=backlog`}>Mở backlog</Link>}>
+        {!issues.some((issue) => !issue.sprint_id) ? <EmptyState title="Không có ticket chưa gán Sprint" /> : <div className="table-scroll"><table>
+          <thead><tr><th>Ticket</th><th>Trạng thái</th><th>Gán Sprint</th></tr></thead>
+          <tbody>{issues.filter((issue) => !issue.sprint_id).map((issue) => <tr key={issue.id}>
+            <td><Link className="text-link" href={`/dashboard/issues/${issue.id}`}>{issue.title}</Link></td><td>{issue.status}</td>
+            <td><select aria-label={`Sprint của ${issue.title}`} disabled={busy || !canAssign} value="" onChange={(event) => void assignIssue(issue.id, event.target.value)}>
+              <option value="">Chưa gán</option>{sprints.filter((sprint) => sprint.status !== 'completed').map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
+            </select></td>
+          </tr>)}</tbody>
+        </table></div>}
+        <p className="card-body muted">Mở board để xem và tìm toàn bộ ticket của dự án.</p>
       </Card>
       {editing && (
         <Dialog title={editing === 'new' ? 'Tạo Sprint' : 'Cập nhật Sprint'} onClose={() => setEditing(null)} busy={busy}>

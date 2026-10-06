@@ -9,10 +9,32 @@ import {
   QueryNotice,
 } from '@/components/ui'
 import { StatusBadge } from '@/components/StatusBadge'
-import { formatDate } from '@/lib/presentation'
+import { formatDate, localDate } from '@/lib/presentation'
+import { reportPeriod } from '@/lib/report-period.mjs'
+import { Pagination } from '@/components/Pagination'
+import { PAGE_SIZE, pageNumber, uuidParam, textParam, type SearchValues } from '@/lib/list-query'
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<SearchValues> }) {
+  const params = await searchParams
+  const projectId = uuidParam(params.project)
+  const period = reportPeriod(textParam(params.start), textParam(params.end), localDate())
+  const utilizationPage = pageNumber(params.utilPage)
+  const healthPage = pageNumber(params.healthPage)
   const supabase = await createClient()
+  function timesheetCount(status: string[]) {
+    let query = supabase.from('work_timesheet').select('id', { count: 'exact', head: true })
+      .in('status', status).lte('period_start', period.end).gte('period_end', period.start)
+    if (projectId) query = query.eq('project_id', projectId)
+    return query
+  }
+  let projectQuery = supabase.from('project_project').select('id', { count: 'exact', head: true }).eq('status', 'active')
+  let issueQuery = supabase.from('work_issue').select('id', { count: 'exact', head: true }).not('status', 'in', '(done,cancelled)')
+  let healthQuery = supabase.from('dashboard_project_health').select('*', { count: 'exact' }).order('project_id')
+  if (projectId) {
+    projectQuery = projectQuery.eq('id', projectId)
+    issueQuery = issueQuery.eq('project_id', projectId)
+    healthQuery = healthQuery.eq('project_id', projectId)
+  }
   const [
     employees,
     projects,
@@ -20,42 +42,31 @@ export default async function DashboardPage() {
     pending,
     health,
     utilization,
+    projectOptions,
     ...statuses
   ] = await Promise.all([
     supabase
       .from('hr_employee')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active'),
-    supabase
-      .from('project_project')
-      .select('id', { count: 'exact', head: true })
-      .eq('status', 'active'),
-    supabase
-      .from('work_issue')
-      .select('id', { count: 'exact', head: true })
-      .not('status', 'in', '(done,cancelled)'),
-    supabase
-      .from('work_timesheet')
-      .select('id', { count: 'exact', head: true })
-      .in('status', ['submitted', 'leader_approved']),
-    supabase.from('dashboard_project_health').select('*').limit(50),
-    supabase
-      .from('dashboard_team_utilization')
-      .select('*')
-      .order('approved_hours', { ascending: false, nullsFirst: false })
-      .limit(10),
+    projectQuery,
+    issueQuery,
+    timesheetCount(['submitted', 'leader_approved']),
+    healthQuery.range((healthPage - 1) * PAGE_SIZE, healthPage * PAGE_SIZE - 1),
+    supabase.rpc('get_dashboard_utilization', {
+      p_start_date: period.start, p_end_date: period.end, p_project_id: projectId || null,
+      p_offset: (utilizationPage - 1) * PAGE_SIZE, p_limit: PAGE_SIZE,
+    }),
+    supabase.from('project_project').select('id,name').order('name').limit(1000),
     ...['draft', 'submitted', 'leader_approved', 'pm_approved', 'locked'].map(
       (status) =>
-        supabase
-          .from('work_timesheet')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', status),
+        timesheetCount([status]),
     ),
   ])
-  const maxHours = Math.max(
-    1,
-    ...(utilization.data ?? []).map((row) => Number(row.approved_hours) || 0),
-  )
+  const utilizationRows = (utilization.data ?? []) as {
+    employee_id: string; full_name: string; approved_hours: number; capacity_hours: number;
+    utilization_pct: number | null; active_projects: number; total_count: number
+  }[]
   const statusNames = [
     'draft',
     'submitted',
@@ -70,6 +81,15 @@ export default async function DashboardPage() {
         subtitle={`Tổng quan vận hành · ${formatDate(new Date().toISOString())}`}
       />
       <main id="main-content" className="page-content">
+        <form method="get" className="toolbar">
+          <label htmlFor="report-project">Dự án</label><select id="report-project" name="project" defaultValue={projectId}>
+            <option value="">Tất cả dự án</option>{(projectOptions.data ?? []).map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+          </select>
+          <label htmlFor="report-start">Từ ngày</label><input id="report-start" name="start" type="date" required defaultValue={period.start} />
+          <label htmlFor="report-end">Đến ngày</label><input id="report-end" name="end" type="date" required defaultValue={period.end} />
+          <button className="btn sm" type="submit">Áp dụng</button>
+        </form>
+        {period.invalid && <p className="notice error" role="alert">Khoảng ngày không hợp lệ hoặc dài quá 366 ngày. Đang hiển thị tháng hiện tại.</p>}
         <QueryNotice
           failed={[
             employees,
@@ -78,6 +98,7 @@ export default async function DashboardPage() {
             pending,
             health,
             utilization,
+            projectOptions,
             ...statuses,
           ].some((result) => !!result.error)}
         />
@@ -85,18 +106,18 @@ export default async function DashboardPage() {
           items={[
             {
               label: 'Nhân sự đang hoạt động',
-              value: employees.error ? '—' : (employees.count ?? 0),
-              detail: 'Hồ sơ nhân sự hiện tại',
+              value: projectId ? (utilization.error ? '—' : (utilizationRows[0]?.total_count ?? 0)) : employees.error ? '—' : (employees.count ?? 0),
+              detail: projectId ? 'Nhân sự trong dự án và kỳ đã chọn' : 'Hồ sơ nhân sự hiện tại',
             },
             {
               label: 'Issue đang mở',
               value: issues.error ? '—' : (issues.count ?? 0),
-              detail: 'Chưa hoàn thành hoặc hủy',
+              detail: 'Trạng thái hiện tại, theo dự án',
             },
             {
               label: 'Timesheet chờ duyệt',
               value: pending.error ? '—' : (pending.count ?? 0),
-              detail: 'Chờ Leader hoặc PM',
+              detail: 'Kỳ giao với khoảng ngày đã chọn',
             },
             {
               label: 'Dự án đang chạy',
@@ -107,7 +128,7 @@ export default async function DashboardPage() {
         />
         <div className="two-columns">
           <Card
-            title="Giờ được duyệt theo nhân sự"
+            title="Utilization theo nhân sự trong kỳ"
             action={
               <Link className="text-link" href="/dashboard/hr/employees">
                 Xem nhân sự
@@ -115,7 +136,7 @@ export default async function DashboardPage() {
             }
           >
             <div className="card-body">
-              {!utilization.data?.length ? (
+              {!utilizationRows.length ? (
                 <EmptyState
                   title={
                     utilization.error
@@ -124,25 +145,28 @@ export default async function DashboardPage() {
                   }
                 />
               ) : (
-                utilization.data.map((row) => (
+                utilizationRows.map((row) => (
                   <div key={row.employee_id} className="utilization-row">
                     <span className="truncate" title={row.full_name}>
                       {row.full_name || 'Nhân sự'}
                     </span>
                     <Progress
                       label={`Giờ được duyệt của ${row.full_name}`}
-                      value={Number(row.approved_hours) || 0}
-                      max={maxHours}
+                      value={Number(row.utilization_pct) || 0}
+                      max={100}
                     />
                     <b className="num text-right">
-                      {Number(row.approved_hours) || 0}h
+                      {row.utilization_pct == null ? '—' : `${Number(row.utilization_pct)}%`}
+                      <small className="block muted">{Number(row.approved_hours)}h / {Number(row.capacity_hours)}h</small>
+                      <small className="block muted">{Number(row.active_projects)} dự án có giờ đã duyệt</small>
                     </b>
                   </div>
                 ))
               )}
               <p className="muted">
-                Tổng giờ từ timesheet đã được PM duyệt hoặc đã khóa.
+                Giờ đã duyệt / capacity trong kỳ. Capacity tính 8h mỗi ngày làm việc, trừ nghỉ phép đã duyệt; khi lọc dự án, dùng allocation đã duyệt. Không có capacity sẽ hiển thị “—”.
               </p>
+              <Pagination page={utilizationPage} total={utilizationRows[0]?.total_count ?? 0} parameter="utilPage" />
             </div>
           </Card>
           <Card
@@ -169,7 +193,7 @@ export default async function DashboardPage() {
           </Card>
         </div>
         <Card
-          title="Sức khỏe dự án"
+          title="Sức khỏe dự án hiện tại"
           action={
             <Link href="/dashboard/projects" className="text-link">
               Quản lý dự án →
@@ -246,6 +270,7 @@ export default async function DashboardPage() {
             </div>
           )}
         </Card>
+        <Pagination page={healthPage} total={health.count ?? 0} parameter="healthPage" />
       </main>
     </div>
   )

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Plus, Check, ChevronRight, Pencil, Send, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -59,36 +59,42 @@ export function ProjectListClient({
   projects,
   proposals,
   clients,
+  initialTab = 'projects',
+  initialStatus = 'active',
+  initialSearch = '',
 }: {
   projects: Project[]
   proposals: Proposal[]
   clients: Client[]
+  initialTab?: string
+  initialStatus?: string
+  initialSearch?: string
 }) {
   const router = useRouter()
+  const params = useSearchParams()
   const supabase = createClient()
   const user = useWorkspace()
-  const [tab, setTab] = useState('projects')
-  const [status, setStatus] = useState('active')
-  const [search, setSearch] = useState('')
+  const tab = initialTab
+  const status = initialStatus
+  const [search, setSearch] = useState(initialSearch)
+  function navigate(updates: Record<string, string>) {
+    const next = new URLSearchParams(params.toString())
+    for (const [key,value] of Object.entries(updates)) { if (value) next.set(key,value); else next.delete(key) }
+    next.delete('page'); router.push(`/dashboard/projects?${next}`)
+  }
+  function setTab(value: string) { navigate({ tab: value, q: '' }) }
+  function setStatus(value: string) { navigate({ status: value || 'all' }) }
   const [busyId, setBusyId] = useState<string | null>(null)
   const [editing, setEditing] = useState<Project | 'new' | null>(null)
   const [editingClient, setEditingClient] = useState<Client | 'new' | 'manage' | null>(null)
   const [creatingProposal, setCreatingProposal] = useState(false)
   const [rejectingProposal, setRejectingProposal] = useState<Proposal | null>(null)
   const [saving, setSaving] = useState(false)
-  const query = search.trim().toLocaleLowerCase('vi')
   const filteredProjects = projects.filter(
     (p) =>
-      (!status || p.status === status) &&
-      [p.name, p.code, p.project_client?.name].some((value) =>
-        value?.toLocaleLowerCase('vi').includes(query),
-      ),
+      (!status || p.status === status),
   )
-  const filteredProposals = proposals.filter((p) =>
-    [p.title, p.project_client?.name].some((value) =>
-      value?.toLocaleLowerCase('vi').includes(query),
-    ),
-  )
+  const filteredProposals = proposals
   const canEditProject = (projectId: string) =>
     user.hasRole('company_owner', 'director', 'project_manager') ||
     user.hasProjectRole(projectId, 'pm')
@@ -273,11 +279,11 @@ export function ProjectListClient({
             ))}
         </div>
         <div className="toolbar">
-          <SearchField
-            placeholder="Tìm dự án, khách hàng…"
+          <form className="toolbar" onSubmit={(event) => { event.preventDefault(); navigate({ q: search }) }}><SearchField
+            placeholder={tab === 'projects' ? 'Tìm tên hoặc mã dự án…' : 'Tìm đề xuất…'}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-          />
+          /><Button type="submit" size="sm" variant="ghost">Tìm</Button></form>
           {tab === 'projects' &&
             user.hasRole('company_owner', 'director', 'project_manager') && (
               <>
@@ -290,9 +296,7 @@ export function ProjectListClient({
               </>
             )}
           {tab === 'projects' && canManageClients && (
-            <Button size="sm" variant="ghost" onClick={() => setEditingClient('manage')}>
-              <Plus size={15} /> Khách hàng
-            </Button>
+            <Link className="btn sm ghost" href="/dashboard/clients">Khách hàng & liên hệ</Link>
           )}
           {tab === 'proposals' && user.hasRole('company_owner', 'project_manager') && (
             <Button size="sm" disabled={!clients.length} onClick={() => setCreatingProposal(true)}>
@@ -430,10 +434,7 @@ export function ProjectListClient({
           </div>
         )}
       </Card>
-      <p className="muted">
-        Dự án được tạo từ đề xuất đã duyệt. Hiển thị tối đa 100 bản ghi gần
-        nhất.
-      </p>
+      <p className="muted">Dự án có thể tạo trực tiếp hoặc từ đề xuất đã duyệt. Kết quả được phân trang theo bộ lọc.</p>
       {editing && (
         <Dialog title={editing === 'new' ? 'Tạo dự án' : 'Cập nhật dự án'} onClose={() => setEditing(null)} busy={saving}>
           <form onSubmit={saveProject}>

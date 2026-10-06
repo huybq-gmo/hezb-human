@@ -10,7 +10,7 @@ import { Button, Field } from '@/components/ui'
 import Link from 'next/link'
 import { HexagonAvatar } from '@/components/HezbLogo'
 import { StatusBadge } from '@/components/StatusBadge'
-import { Badge, Card, EmptyState, SearchField } from '@/components/ui'
+import { Badge, Card, EmptyState } from '@/components/ui'
 import {
   formatDate,
   effectiveMembershipStatus,
@@ -46,25 +46,13 @@ export function ProjectMembershipClient({
 }) {
   const router = useRouter()
   const supabase = createClient()
-  const [search, setSearch] = useState('')
-  const [project, setProject] = useState(initialProject)
-  const [status, setStatus] = useState('')
+
   const [assigning, setAssigning] = useState(false)
   const [revoking, setRevoking] = useState<Membership | null>(null)
   const [busy, setBusy] = useState(false)
   const visibleProjects = canManage ? projects : projects.filter((item) => manageableProjectIds.includes(item.id))
   const canAssign = canManage || manageableProjectIds.length > 0
-  const q = search.trim().toLowerCase()
-  const filtered = memberships.filter(
-    (member) =>
-      (!project || member.project_id === project) &&
-      (!status || effectiveMembershipStatus(member) === status) &&
-      [
-        member.core_user_profile?.full_name,
-        member.project_project?.name,
-        member.user_id,
-      ].some((value) => value?.toLowerCase().includes(q)),
-  )
+  const filtered = memberships
   async function assign(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
@@ -109,37 +97,6 @@ export function ProjectMembershipClient({
       <div className="toolbar toolbar-between">
         <p className="muted">Quản lý thành viên, vai trò dự án và thời gian hiệu lực.</p>
         {canAssign && <Button size="sm" onClick={() => setAssigning(true)}><Plus size={15} />Thêm thành viên</Button>}
-      </div>
-      <div className="toolbar">
-        <SearchField
-          placeholder="Tìm thành viên, dự án…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <select
-          aria-label="Lọc dự án"
-          value={project}
-          onChange={(e) => setProject(e.target.value)}
-        >
-          <option value="">Tất cả dự án</option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Lọc trạng thái thành viên"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="active">Đang hoạt động</option>
-          <option value="expired">Hết hạn</option>
-          <option value="revoked">Đã thu hồi</option>
-          <option value="pending">Chưa đến ngày hiệu lực</option>
-        </select>
-        <span className="muted">{filtered.length} thành viên</span>
       </div>
       <Card>
         {!filtered.length ? (
@@ -215,7 +172,7 @@ export function ProjectMembershipClient({
       {assigning && (
         <Dialog title="Thêm thành viên dự án" onClose={() => setAssigning(false)} busy={busy}>
           <form onSubmit={assign}>
-            <Field label="Dự án"><select name="project_id" defaultValue={initialProject || project} required><option value="">Chọn dự án</option>{visibleProjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+            <Field label="Dự án"><select name="project_id" defaultValue={initialProject} required><option value="">Chọn dự án</option>{visibleProjects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
             <Field label="Thành viên"><select name="user_id" required><option value="">Chọn thành viên</option>{users.map((item) => <option key={item.id} value={item.id}>{item.full_name || 'Thành viên'} · {item.id.slice(0, 8)}</option>)}</select></Field>
             <div className="form-grid">
               <Field label="Vai trò"><select name="project_role" defaultValue="developer"><option value="pm">Project Manager</option><option value="team_leader">Team Leader</option><option value="developer">Developer</option><option value="qa_reviewer">QA Reviewer</option></select></Field>

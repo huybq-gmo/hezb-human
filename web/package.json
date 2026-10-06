@@ -12,7 +12,11 @@
     "setup:supabase": "node scripts/setup-supabase.mjs",
     "test:supabase-config": "node --test scripts/supabase-db-config.test.mjs",
     "test:demo": "node --test scripts/demo-data.test.mjs",
-    "check": "pnpm typecheck && pnpm test:supabase-config && pnpm test:demo",
+    "test:reporting": "node --test scripts/reporting.test.mjs",
+    "test:timesheet-followup": "node --test scripts/timesheet-followup.test.mjs",
+    "test:timesheet-db": "node scripts/check-timesheet-db.mjs",
+    "test:smoke-demo": "node scripts/smoke-demo.mjs",
+    "check": "pnpm typecheck && pnpm test:supabase-config && pnpm test:demo && pnpm test:reporting && pnpm test:timesheet-followup",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"

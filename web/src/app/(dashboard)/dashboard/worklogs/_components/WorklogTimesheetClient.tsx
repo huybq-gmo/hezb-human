@@ -11,6 +11,8 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
@@ -28,6 +30,8 @@ import {
   Progress,
 } from '@/components/ui'
 import { formatDate, localDate } from '@/lib/presentation'
+import { Pagination } from '@/components/Pagination'
+import { AdjustmentRequestDialog } from './TimesheetAdjustments'
 import { cn } from '@/lib/utils'
 
 interface Worklog {
@@ -42,10 +46,12 @@ interface Worklog {
   work_type: string
   status: string
   created_by: string
+  version: number
   work_issue?: { title: string } | null
   project_project?: { name: string } | null
 }
 interface Timesheet {
+  version: number
   id: string
   employee_id: string
   project_id: string
@@ -60,6 +66,8 @@ interface Timesheet {
 interface Props {
   currentUserId: string
   currentEmployee: { id: string; full_name: string | null } | null
+  weeklyHours: {issue_id:string;project_id:string;logged_date:string;hours:number;issue_title:string;project_name:string}[]
+  logPage:number;logTotal:number;sheetPage:number;sheetTotal:number
   worklogs: Worklog[]
   timesheets: Timesheet[]
   projects: { id: string; name: string }[]
@@ -93,6 +101,7 @@ const WORK_TYPES: Record<string, string> = {
 }
 
 export function WorklogTimesheetClient({
+  weeklyHours, logPage,logTotal,sheetPage,sheetTotal,
   currentUserId,
   currentEmployee,
   worklogs,
@@ -107,7 +116,10 @@ export function WorklogTimesheetClient({
   const params = useSearchParams()
   const supabase = createClient()
   const user = useWorkspace()
+  const [adjustingSheet,setAdjustingSheet]=useState<Timesheet|null>(null)
   const [showLog, setShowLog] = useState(false)
+  const [editingLog, setEditingLog] = useState<Worklog | null>(null)
+  const [deletingLog, setDeletingLog] = useState<Worklog | null>(null)
   const [showSubmit, setShowSubmit] = useState(false)
   const [selectedProject, setSelectedProject] = useState(
     params.get('project') || '',
@@ -115,16 +127,17 @@ export function WorklogTimesheetClient({
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [action, setAction] = useState<{
-    type: 'reject' | 'adjust' | 'lock'
+    type: 'reject' | 'lock'
     ts: Timesheet
   } | null>(null)
   const tab = ['approval', 'timesheet'].includes(params.get('tab') || '')
     ? 'approval'
+    : params.get('tab') === 'adjustments' ? 'adjustments'
     : params.get('tab') === 'logs'
       ? 'logs'
       : 'week'
   const canReview =
-    user.hasRole('company_owner', 'project_manager', 'team_leader') ||
+    user.hasRole('company_owner', 'hr_admin', 'project_manager', 'team_leader') ||
     user.memberships.some((m) => ['pm', 'team_leader'].includes(m.project_role))
   const ownLogs = worklogs.filter(
     (log) =>
@@ -149,12 +162,12 @@ export function WorklogTimesheetClient({
       total: number
     }
   >()
-  for (const log of ownLogs) {
+  for (const log of weeklyHours) {
     const key = `${log.project_id}:${log.issue_id}`
     const row = groups.get(key) || {
       issueId: log.issue_id,
-      title: log.work_issue?.title || 'Ticket',
-      project: log.project_project?.name || 'Dự án',
+      title: log.issue_title || 'Ticket',
+      project: log.project_name || 'Dự án',
       days: Array(7).fill(0),
       total: 0,
     }
@@ -172,6 +185,7 @@ export function WorklogTimesheetClient({
   const total = dailyTotals.reduce((sum, hours) => sum + hours, 0)
   function navigate(updates: Record<string, string | null>) {
     const next = new URLSearchParams(params.toString())
+    next.delete('log_page');next.delete('sheet_page')
     for (const [key, value] of Object.entries(updates)) {
       if (value) next.set(key, value)
       else next.delete(key)
@@ -182,6 +196,7 @@ export function WorklogTimesheetClient({
   }
   function closeLog() {
     setShowLog(false)
+    setEditingLog(null)
     setErrors({})
     if (params.has('log')) navigate({ log: null })
   }
@@ -206,7 +221,7 @@ export function WorklogTimesheetClient({
       )
       return
     }
-    if (
+    if (!editingLog &&
       !issues.some(
         (issue) =>
           issue.id === parsed.data.issue_id &&
@@ -218,23 +233,47 @@ export function WorklogTimesheetClient({
     }
     setBusy(true)
     try {
-      const { error } = await supabase.from('work_worklog').insert({
-        ...parsed.data,
-        employee_id: currentEmployee.id,
+      const payload = {
+        logged_date: parsed.data.logged_date,
+        hours: parsed.data.hours,
         is_billable: data.get('is_billable') === 'on',
         work_type: String(data.get('work_type') || 'coding'),
         description: String(data.get('description') || '').trim() || null,
-        created_by: currentUserId,
-        status: 'draft',
-      })
-      if (error) {
+      }
+      const result = editingLog
+        ? await supabase.from('work_worklog').update(payload)
+            .eq('id', editingLog.id).eq('employee_id', currentEmployee.id)
+            .eq('status', 'draft').eq('version', editingLog.version).select('id')
+        : await supabase.from('work_worklog').insert({
+            ...payload, project_id: parsed.data.project_id, issue_id: parsed.data.issue_id,
+            employee_id: currentEmployee.id, created_by: currentUserId, status: 'draft',
+          }).select('id')
+      if (result.error || !result.data?.length) {
         toast.error(
-          'Không thể lưu giờ làm. Kiểm tra quyền hoặc kỳ timesheet đã khóa.',
+          'Không thể lưu giờ làm. Dữ liệu có thể đã thay đổi, kỳ đã khóa hoặc tổng giờ vượt giới hạn. Hãy tải lại trang.',
         )
         return
       }
-      toast.success('Đã ghi nhận giờ làm')
+      toast.success(editingLog ? 'Đã cập nhật giờ làm' : 'Đã ghi nhận giờ làm')
       closeLog()
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function deleteLog() {
+    if (!deletingLog || !currentEmployee || busy) return
+    setBusy(true)
+    try {
+      const { data, error } = await supabase.from('work_worklog').delete()
+        .eq('id', deletingLog.id).eq('employee_id', currentEmployee.id)
+        .eq('status', 'draft').eq('version', deletingLog.version).select('id')
+      if (error || !data?.length) {
+        toast.error('Không thể xóa giờ làm. Dữ liệu có thể đã thay đổi hoặc kỳ đã khóa. Hãy tải lại trang.')
+        return
+      }
+      setDeletingLog(null)
+      toast.success('Đã xóa giờ làm nháp')
       router.refresh()
     } finally {
       setBusy(false)
@@ -337,22 +376,18 @@ export function WorklogTimesheetClient({
     await rpc(
       action.type === 'lock'
         ? 'lock_timesheet_period'
-        : action.type === 'adjust'
-          ? 'request_timesheet_adjustment'
-          : 'reject_timesheet',
+        : 'reject_timesheet',
       args,
       action.type === 'lock'
         ? 'Đã khóa kỳ timesheet'
-        : action.type === 'adjust'
-          ? 'Đã gửi yêu cầu điều chỉnh'
-          : 'Đã trả timesheet về nháp',
+        : 'Đã trả timesheet về nháp',
       () => setAction(null),
     )
   }
   const canApprove = (ts: Timesheet, step: 'leader' | 'pm') =>
     ts.employee_id !== currentEmployee?.id &&
     ts.created_by !== currentUserId &&
-    (user.hasRole('company_owner') ||
+    (user.hasRole('company_owner') || (step==='leader' && user.hasRole('hr_admin')) ||
       user.hasProjectRole(
         ts.project_id,
         step === 'leader' ? 'team_leader' : 'pm',
@@ -384,6 +419,7 @@ export function WorklogTimesheetClient({
             Duyệt timesheet
           </button>
         )}
+        <button className={cn(tab==='adjustments' && 'on')} aria-pressed={tab==='adjustments'} onClick={()=>navigate({tab:'adjustments'})}>Điều chỉnh sau khóa</button>
       </div>
       {!currentEmployee && (
         <div className="notice warning">
@@ -558,6 +594,7 @@ export function WorklogTimesheetClient({
                     <th>Giờ</th>
                     <th>Tính phí</th>
                     <th>Trạng thái</th>
+                    <th>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -586,15 +623,22 @@ export function WorklogTimesheetClient({
                       <td>
                         <StatusBadge status={log.status} />
                       </td>
+                      <td>{log.status === 'draft' && <div className="toolbar">
+                        <Button size="sm" variant="ghost" disabled={busy} onClick={() => {
+                          setEditingLog(log); setSelectedProject(log.project_id); setShowLog(true); setErrors({})
+                        }}><Pencil size={14} /> Sửa</Button>
+                        <Button size="sm" variant="danger" disabled={busy} onClick={() => setDeletingLog(log)}><Trash2 size={14} /> Xóa</Button>
+                      </div>}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          <Pagination page={logPage} total={logTotal} parameter="log_page" />
         </Card>
       )}
-      <Card
+      {tab !== 'adjustments' && <Card
         title={tab === 'approval' ? 'Timesheet cần duyệt' : 'Timesheet đã gửi'}
       >
         {!sheets.length ? (
@@ -688,7 +732,7 @@ export function WorklogTimesheetClient({
                                 size="sm"
                                 variant="ghost"
                                 onClick={() =>
-                                  setAction({ type: 'adjust', ts })
+                                  setAdjustingSheet(ts)
                                 }
                               >
                                 Yêu cầu điều chỉnh
@@ -711,10 +755,18 @@ export function WorklogTimesheetClient({
             </table>
           </div>
         )}
-      </Card>
+        <Pagination page={sheetPage} total={sheetTotal} parameter="sheet_page" />
+      </Card>}
+      {adjustingSheet && <AdjustmentRequestDialog sheet={adjustingSheet} onClose={()=>setAdjustingSheet(null)} />}
       {(showLog || params.get('log') === '1') && currentEmployee && (
-        <Dialog title="Log work" onClose={closeLog} busy={busy}>
+        <Dialog title={editingLog ? 'Sửa giờ làm nháp' : 'Log work'} onClose={closeLog} busy={busy}>
           <form onSubmit={saveLog}>
+            {editingLog && <>
+              <input type="hidden" name="project_id" value={editingLog.project_id} />
+              <input type="hidden" name="issue_id" value={editingLog.issue_id} />
+              <p className="muted">{editingLog.work_issue?.title || 'Ticket'} · {editingLog.project_project?.name || 'Dự án'}</p>
+            </>}
+            {!editingLog && <>
             <Field label="Dự án" error={errors.project_id}>
               <select
                 name="project_id"
@@ -747,12 +799,13 @@ export function WorklogTimesheetClient({
                   ))}
               </select>
             </Field>
+            </>}
             <div className="form-grid">
               <Field label="Ngày" error={errors.logged_date}>
                 <input
                   name="logged_date"
                   type="date"
-                  defaultValue={localDate()}
+                  defaultValue={editingLog?.logged_date || localDate()}
                   required
                 />
               </Field>
@@ -763,23 +816,23 @@ export function WorklogTimesheetClient({
                   min="0.25"
                   max="24"
                   step="0.25"
-                  defaultValue="1"
+                  defaultValue={editingLog?.hours ?? 1}
                   required
                 />
               </Field>
             </div>
             <Field label="Loại công việc">
-              <select name="work_type" defaultValue="coding">
+              <select name="work_type" defaultValue={editingLog?.work_type || 'coding'}>
                 {Object.entries(WORK_TYPES).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
               </select>
             </Field>
             <Field label="Mô tả">
-              <textarea name="description" placeholder="Bạn đã làm gì?" />
+              <textarea name="description" maxLength={10000} placeholder="Bạn đã làm gì?" defaultValue={editingLog?.description || ''} />
             </Field>
             <label className="checkbox-field">
-              <input name="is_billable" type="checkbox" defaultChecked />
+              <input name="is_billable" type="checkbox" defaultChecked={editingLog?.is_billable ?? true} />
               Tính phí (billable)
             </label>
             <div className="form-actions">
@@ -793,6 +846,10 @@ export function WorklogTimesheetClient({
           </form>
         </Dialog>
       )}
+      {deletingLog && <Dialog title="Xóa giờ làm nháp" onClose={() => setDeletingLog(null)} busy={busy}>
+        <p className="dialog-content">Xóa {deletingLog.hours} giờ ngày {formatDate(deletingLog.logged_date)} trên ticket “{deletingLog.work_issue?.title || 'Ticket'}”?</p>
+        <div className="form-actions"><Button variant="ghost" disabled={busy} onClick={() => setDeletingLog(null)}>Hủy</Button><Button variant="danger" disabled={busy} onClick={() => void deleteLog()}>Xóa bản nháp</Button></div>
+      </Dialog>}
       {showSubmit && (
         <Dialog
           title="Gửi timesheet"
@@ -856,7 +913,6 @@ export function WorklogTimesheetClient({
             {
               lock: 'Khóa kỳ timesheet',
               reject: 'Trả timesheet về nháp',
-              adjust: 'Yêu cầu điều chỉnh',
             }[action.type]
           }
           onClose={() => setAction(null)}

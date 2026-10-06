@@ -250,7 +250,7 @@ export function createDemoData() {
     }
   })
   const leaveType = { id: id(8, 1), name: 'Phép năm', code: 'ANNUAL' }
-  return {
+  const rows = {
     core_user_profile: profiles,
     core_role_assignment: profiles.map((profile, index) => ({
       id: id(9, index),
@@ -527,4 +527,92 @@ export function createDemoData() {
           : 0,
       })),
   }
+  rows.project_client = projects.map((project) => ({
+    id: project.client_id, name: project.client, code: project.code, address: 'TP. Hồ Chí Minh',
+    website: null, notes: 'Khách hàng mẫu', is_active: true, version: 1,
+  }))
+  rows.project_client_contact = rows.project_client.flatMap((client, index) => [0, 1].map((number) => ({
+    id: id(40, index * 2 + number), client_id: client.id, full_name: number ? 'Người liên hệ kỹ thuật' : 'Người liên hệ chính',
+    email: `contact${index}${number}@example.test`, phone: null, title: number ? 'Tech Lead' : 'Project Manager',
+    is_primary: number === 0, version: 1,
+  })))
+  rows.work_sprint = projects.flatMap((project, index) => [0, 1].map((number) => ({
+    id: id(41, index * 2 + number), project_id: project.id, name: `Sprint ${number + 1} · ${project.code}`,
+    start_date: day(number ? 7 : 0), end_date: day(number ? 20 : 13), status: number ? 'planned' : 'active',
+  })))
+  for (const [index, issue] of issues.entries()) {
+    issue.version = 1; issue.parent_id = index === 1 ? issues[0].id : index === 2 ? issues[1].id : null
+    issue.sprint_id = index % 3 ? rows.work_sprint.find((sprint) => sprint.project_id === issue.project_id)?.id : null
+    if (index === 0) issue.type = 'epic'
+    if (index === 1) issue.type = 'story'
+  }
+  for (const log of worklogs) log.version = 1
+  // Mirror approved sheet hours in synthetic worklogs for date-scoped reports.
+  for (const [index, sheet] of timesheets.entries()) {
+    if (!['pm_approved','locked'].includes(sheet.status)) continue
+    const date = new Date(`${sheet.period_start}T12:00:00Z`)
+    for (let number = 0; number < 5; number++) {
+      rows.work_worklog.push({ ...worklogs[0], id: id(42, index * 5 + number), employee_id: sheet.employee_id,
+        logged_date: date.toISOString().slice(0, 10), hours: sheet.total_hours / 5,
+        status: 'approved', created_by: sheet.created_by,
+        hr_employee: { full_name: sheet.hr_employee.full_name },
+      })
+      date.setUTCDate(date.getUTCDate() + 1)
+    }
+  }
+  rows.hr_team = ['Engineering','Product'].map((name,index) => ({ id: id(43,index),name,description: 'Nhóm mẫu',is_active: true }))
+  rows.hr_team_membership = employees.filter((employee) => employee.status === 'active').map((employee,index) => ({
+    id: id(44,index),team_id: rows.hr_team[index % 2].id,employee_id: employee.id,team_role: index < 2 ? 'leader' : 'member',
+    start_date: day(-56),end_date: null,status: 'active',hr_team: { name: rows.hr_team[index % 2].name },
+    hr_employee: { id: employee.id,full_name: employee.full_name,employee_code: employee.employee_code,status: employee.status },
+  }))
+  rows.hr_team_skill_matrix = rows.hr_team_membership.map((member) => ({
+    team_id: member.team_id,employee_id: member.employee_id,full_name: member.hr_employee.full_name,
+    employee_code: member.hr_employee.employee_code,team_role: member.team_role,
+    skills: rows.hr_skill.filter((skill) => skill.employee_id === member.employee_id),
+  }))
+  rows.project_allocation = rows.project_membership.flatMap((member,index) => {
+    const employee = employees.find((employee) => employee.user_id === member.user_id)
+    return employee ? [{ id: id(45,index),employee_id: employee.id,project_id: member.project_id,
+      project_role: member.project_role,allocation_percent: 50,start_date: day(-56),end_date: day(56),status: 'approved',
+      created_by: OWNER_ID,created_at: now,hr_employee: { full_name: employee.full_name,user_id: employee.user_id },
+    }] : []
+  })
+  rows.finance_invoice = []
+  rows.finance_invoice_line = []
+  rows.finance_payment = []
+  rows.finance_invoice_payment_summary = []
+  rows.finance_project_cost_summary = []
+  rows.finance_payroll_period = []
+  rows.admin_role_directory=rows.core_role_assignment.map(role=>({...role,full_name:profiles.find(p=>p.id===role.user_id)?.full_name}))
+  const capabilities=['hr_admin','finance_admin','director','project_manager','team_leader','developer','qa_reviewer','auditor']
+  rows.core_role_permission=capabilities.map(role=>({role,permission:role,enabled:true}))
+  rows.core_permission_catalog=capabilities.map(code=>({code,label:code,description:'Quyền hệ thống',capability:code,is_system:true}))
+  rows.admin_membership_directory=rows.project_membership.map(member=>({...member,
+    full_name:profiles.find(p=>p.id===member.user_id)?.full_name,project_name:member.project_project.name,project_code:member.project_project.code,
+    effective_status:member.status!=='active'?member.status:member.end_date&&member.end_date<today?'expired':member.start_date>today?'pending':'active',
+  }))
+  const weekly=new Map()
+  for(const log of rows.work_worklog){
+    const key=[log.employee_id,log.project_id,log.issue_id,log.logged_date].join(':')
+    const row=weekly.get(key)||{employee_id:log.employee_id,project_id:log.project_id,issue_id:log.issue_id,logged_date:log.logged_date,
+      issue_title:issues.find(i=>i.id===log.issue_id)?.title,project_name:projects.find(p=>p.id===log.project_id)?.name,hours:0}
+    row.hours+=Number(log.hours);weekly.set(key,row)
+  }
+  rows.work_weekly_hours=[...weekly.values()]
+  for(const sheet of timesheets) sheet.version=1
+  rows.work_timesheet_line=timesheets.filter(sheet=>['pm_approved','locked'].includes(sheet.status)).flatMap((sheet,index)=>
+    rows.work_worklog.filter(log=>log.employee_id===sheet.employee_id&&log.project_id===sheet.project_id&&log.status==='approved'
+      &&log.logged_date>=sheet.period_start&&log.logged_date<=sheet.period_end).map((log,number)=>({
+        id:id(46,index*10+number),timesheet_id:sheet.id,worklog_id:log.id,hours:log.hours,is_billable:log.is_billable,logged_date:log.logged_date,
+        work_worklog:{logged_date:log.logged_date,description:log.description},
+      })))
+  const locked=timesheets.find(sheet=>sheet.status==='locked')
+  const line=rows.work_timesheet_line.find(line=>line.timesheet_id===locked.id)
+  rows.work_timesheet_adjustment=[{id:id(47,0),timesheet_id:locked.id,reason:'Bổ sung một giờ kiểm thử đã ghi thiếu',requested_by:locked.created_by,
+    requested_at:now,status:'pending',version:1,resolution_reason:null,work_timesheet:locked,
+    work_timesheet_adjustment_line:[{worklog_id:line.worklog_id,previous_hours:line.hours,proposed_hours:line.hours+1}],
+  }]
+  rows.work_timesheet_adjustment_line=rows.work_timesheet_adjustment[0].work_timesheet_adjustment_line.map(item=>({...item,adjustment_id:id(47,0)}))
+  return rows
 }

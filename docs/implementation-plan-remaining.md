@@ -4,6 +4,10 @@ Ngày rà soát: 2026-10-06. Kế hoạch này lấy source và migrations hiệ
 
 ### Cập nhật triển khai ngày 2026-10-06
 
+**Đợt tiếp theo:** đã thêm phân trang worklog/timesheet, nghỉ phép, role/membership; reminder chưa nộp tuần trước và luồng đề xuất–duyệt/từ chối–áp dụng giờ sau khóa. Migration 017 cùng 015–016 chưa lên Cloud. Toàn bộ migrations đến 017 chạy trên PostgreSQL WASM cô lập, 60 kiểm tra nghiệp vụ/quyền đạt; không thay thế pgTAP/UAT Supabase. Xem [báo cáo timesheet follow-up](timesheet-followup-2026-10-06.md).
+
+**Cập nhật chức năng local sau rà soát:** đã bổ sung sửa/xóa worklog draft, lọc Sprint/backlog và sửa danh sách issue theo Sprint, contact khách hàng, quan hệ epic/story, Skill Matrix, dashboard theo kỳ/capacity và phân trang. Source có thêm migrations 015–016 và 56 assertion SQL; **chưa áp dụng lên Cloud, chưa chạy bộ SQL mới**. Xem [báo cáo hoàn thiện MVP](mvp-completion-2026-10-06.md). Những kết quả Cloud/database bên dưới là lịch sử trước đợt bổ sung này, đến migration 014.
+
 - Đã áp dụng migrations `202610060002`–`202610060014` lên Supabase Cloud được cấu hình trong `web/.env.local`. Ngày 2026-10-06, migration 014 được áp dụng bằng `web/scripts/setup-supabase.mjs --apply`; chạy kiểm tra lại xác nhận 0 migration chờ áp dụng.
 - Sau migration, `pnpm check:supabase --cloud` xác nhận Project URL/API key và Email provider hoạt động; 23/23 endpoint bảng/view cần user đăng nhập theo RLS. Script triển khai xác nhận 34 bảng ERP và migration history sạch. Chưa thay thế UAT bằng user thật.
 - DB local dựng sạch qua toàn bộ migration; `supabase test db` đạt 215/215 assertion. `pnpm check`, `pnpm build --webpack` và `deno check` cũng đạt.

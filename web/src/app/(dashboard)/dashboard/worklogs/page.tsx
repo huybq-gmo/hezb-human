@@ -1,3 +1,6 @@
+import { Pagination } from '@/components/Pagination'
+import { PAGE_SIZE, pageNumber, textParam, uuidParam, type SearchValues } from '@/lib/list-query'
+import { TimesheetAdjustments, type Adjustment } from './_components/TimesheetAdjustments'
 import { createClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/Topbar'
 import { QueryNotice } from '@/components/ui'
@@ -7,9 +10,12 @@ import { WorklogTimesheetClient } from './_components/WorklogTimesheetClient'
 export default async function WorklogsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ week?: string }>
+  searchParams: Promise<SearchValues>
 }) {
-  const { week } = await searchParams
+  const params=await searchParams; const week=textParam(params.week)
+  const logPage=pageNumber(params.log_page);const sheetPage=pageNumber(params.sheet_page)
+  const adjustmentPage=pageNumber(params.adjustment_page);const project=uuidParam(params.project)
+  const review=['approval','timesheet'].includes(textParam(params.tab))
   const today = localDate()
   const candidate =
     week && /^\d{4}-\d{2}-\d{2}$/.test(week)
@@ -31,37 +37,42 @@ export default async function WorklogsPage({
     .select('id, full_name')
     .eq('user_id', user!.id)
     .maybeSingle()
-  const [worklogs, timesheets, projects, issues] = await Promise.all([
-    employee.data
-      ? supabase
-          .from('work_worklog')
-          .select(
-            '*, work_issue:issue_id(title), project_project:project_id(name)',
-          )
-          .eq('employee_id', employee.data.id)
-          .gte('logged_date', weekStart)
-          .lte('logged_date', weekEnd)
-          .order('logged_date', { ascending: false })
-          .limit(100)
-      : Promise.resolve({ data: [], error: null }),
-    supabase
-      .from('work_timesheet')
-      .select(
-        '*, hr_employee:employee_id(full_name), project_project:project_id(name)',
-      )
-      .order('period_start', { ascending: false })
-      .limit(100),
+  let logsQuery=supabase.from('work_worklog').select('*, work_issue:issue_id(title), project_project:project_id(name)',{count:'exact'})
+    .eq('employee_id',employee.data?.id || '00000000-0000-0000-0000-000000000000').gte('logged_date',weekStart).lte('logged_date',weekEnd)
+    .order('logged_date',{ascending:false}).order('id')
+  let sheetsQuery=supabase.from('work_timesheet').select('*, hr_employee:employee_id(full_name), project_project:project_id(name)',{count:'exact'})
+    .order('period_start',{ascending:false}).order('id')
+  if(!review) sheetsQuery=sheetsQuery.eq('employee_id',employee.data?.id || '00000000-0000-0000-0000-000000000000')
+  if(project){logsQuery=logsQuery.eq('project_id',project);sheetsQuery=sheetsQuery.eq('project_id',project)}
+  const [worklogs, timesheets, projects, issues, adjustments] = await Promise.all([
+    logsQuery.range((logPage-1)*PAGE_SIZE,logPage*PAGE_SIZE-1),
+    sheetsQuery.range((sheetPage-1)*PAGE_SIZE,sheetPage*PAGE_SIZE-1),
     supabase
       .from('project_project')
       .select('id, name')
       .eq('status', 'active')
-      .limit(100),
+      .limit(1000),
     supabase
       .from('work_issue')
       .select('id, project_id, title')
       .not('status', 'in', '(cancelled)')
-      .limit(100),
+      .limit(1000),
+    supabase.from('work_timesheet_adjustment')
+      .select('*,work_timesheet:timesheet_id(*,hr_employee:employee_id(full_name),project_project:project_id(name)),work_timesheet_adjustment_line(worklog_id,previous_hours,proposed_hours)',{count:'exact'})
+      .order('requested_at',{ascending:false}).order('id').range((adjustmentPage-1)*PAGE_SIZE,adjustmentPage*PAGE_SIZE-1),
   ])
+  const weekly: {issue_id:string;project_id:string;logged_date:string;hours:number;issue_title:string;project_name:string}[]=[]
+  let weeklyError=false
+  if(employee.data && !['logs','approval','timesheet','adjustments'].includes(textParam(params.tab))) {
+    for(let offset=0;;offset+=1000){
+      let query=supabase.from('work_weekly_hours').select('*').eq('employee_id',employee.data.id)
+        .gte('logged_date',weekStart).lte('logged_date',weekEnd).order('project_id').order('issue_id').order('logged_date')
+      if(project) query=query.eq('project_id',project)
+      const result=await query.range(offset,offset+999)
+      if(result.error){weeklyError=true;break}
+      weekly.push(...(result.data ?? []));if((result.data ?? []).length<1000) break
+    }
+  }
   const attendance = employee.data
     ? await supabase
         .from('work_attendance')
@@ -94,14 +105,17 @@ export default async function WorklogsPage({
       />
       <main id="main-content" className="page-content">
         <QueryNotice
-          failed={[employee, worklogs, timesheets, projects, issues, attendance].some(
+          failed={[employee, worklogs, timesheets, projects, issues, attendance, adjustments].some(
             (result) => !!result.error,
-          )}
+          ) || weeklyError}
         />
         <WorklogTimesheetClient
           currentUserId={user!.id}
           currentEmployee={employee.data}
           worklogs={formattedWorklogs}
+          weeklyHours={weekly}
+          logPage={logPage} logTotal={worklogs.count ?? 0}
+          sheetPage={sheetPage} sheetTotal={timesheets.count ?? 0}
           timesheets={formattedTimesheets}
           projects={projects.data ?? []}
           issues={issues.data ?? []}
@@ -109,6 +123,8 @@ export default async function WorklogsPage({
           weekStart={weekStart}
           weekEnd={weekEnd}
         />
+        {params.tab==='adjustments' && <TimesheetAdjustments adjustments={(adjustments.data ?? []) as unknown as Adjustment[]}
+          page={adjustmentPage} total={adjustments.count ?? 0} currentEmployeeId={employee.data?.id} currentUserId={user!.id} />}
       </main>
     </div>
   )
