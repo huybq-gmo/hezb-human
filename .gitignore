@@ -1,0 +1,15 @@
+# Environment files
+.env
+.env.*
+.env*.local
+!.env.example
+!**/.env.example
+
+# Supabase local CLI
+supabase/.branches
+supabase/.temp
+
+# Dependencies & OS files
+node_modules/
+.DS_Store
+*.log
