@@ -1,4 +1,5 @@
 import { createDemoData, DEMO_EMAIL, DEMO_PASSWORD, OWNER_ID } from './data.mjs'
+import { demoUtilization } from './reporting.mjs'
 
 export const DEMO_URL = 'https://hezb-preview.invalid'
 export const DEMO_KEY = 'local-preview-key'
@@ -89,8 +90,7 @@ function matches(row, column, expression) {
   return false
 }
 
-export function createDemoFetch() {
-  const rows = createDemoData()
+export function createDemoFetch(rows = createDemoData()) {
   const reply = (status, data, headers = {}) =>
     new Response(data === undefined ? null : JSON.stringify(data), {
       status,
@@ -136,6 +136,10 @@ export function createDemoFetch() {
         request.method === 'POST'
       )
         return reply(200, [{ role: 'company_owner' }])
+      if (url.pathname === '/rest/v1/rpc/get_dashboard_utilization' && request.method === 'POST') {
+        try { return reply(200,demoUtilization(rows,await request.json())) }
+        catch { return reply(400,{ code: 'INVALID_REPORT_RANGE',message: 'Khoảng báo cáo không hợp lệ.' }) }
+      }
       if (
         url.pathname.startsWith('/storage/v1/object/list/') &&
         request.method === 'POST'

@@ -14,7 +14,6 @@ import {
   Card,
   EmptyState,
   Field,
-  SearchField,
 } from '@/components/ui'
 import { formatDate, formatDateTime } from '@/lib/presentation'
 
@@ -82,12 +81,7 @@ export function RoleManagementClient({
   const [revoking, setRevoking] = useState<Assignment | null>(null)
   const [busy, setBusy] = useState(false)
   const [savingPermission, setSavingPermission] = useState('')
-  const [search, setSearch] = useState('')
-  const filtered = initialData.filter((a) =>
-    [a.core_user_profile?.full_name, APP_ROLE_LABELS[a.role], a.user_id].some(
-      (value) => value?.toLowerCase().includes(search.trim().toLowerCase()),
-    ),
-  )
+  const filtered = initialData
   const names = new Map(userList.map((user) => [user.id, user.full_name]))
   async function assign(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -181,11 +175,7 @@ export function RoleManagementClient({
         </div>
       )}
       <div className="toolbar toolbar-between">
-        <SearchField
-          placeholder="Tìm tên thành viên, vai trò…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+
         {isCompanyOwner && (
           <Button size="sm" onClick={() => setCreating(true)}>
             <UserPlus size={15} />

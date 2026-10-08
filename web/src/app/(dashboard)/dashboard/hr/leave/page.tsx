@@ -1,16 +1,21 @@
+import { Pagination } from '@/components/Pagination'
+import { PAGE_SIZE, pageNumber, textParam, type SearchValues } from '@/lib/list-query'
 import { createClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/Topbar'
 import { QueryNotice } from '@/components/ui'
 import { LeaveManagementClient } from './_components/LeaveManagementClient'
 
-export default async function LeaveManagementPage() {
+export default async function LeaveManagementPage({searchParams}: {searchParams: Promise<SearchValues>}) {
+  const params=await searchParams
+  const page=pageNumber(params.page)
+  const status=['pending','approved','rejected'].includes(textParam(params.status)) ? textParam(params.status) : ''
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
 
   // Fetch leave requests
-  const { data: requests, error: requestError } = await supabase
+  let requestQuery = supabase
     .from('hr_leave_request')
     .select(
       `
@@ -28,10 +33,12 @@ export default async function LeaveManagementPage() {
       created_at,
       hr_employee:employee_id (full_name),
       hr_leave_type:leave_type_id (name, code)
-    `,
+    `, {count: 'exact'},
     )
     .order('created_at', { ascending: false })
-    .limit(100)
+    .order('id')
+  if(status) requestQuery=requestQuery.eq('status',status)
+  const {data: requests,error: requestError,count}=await requestQuery.range((page-1)*PAGE_SIZE,page*PAGE_SIZE-1)
 
   // Fetch leave types for creating requests
   const { data: leaveTypes, error: typeError } = await supabase
@@ -70,6 +77,7 @@ export default async function LeaveManagementPage() {
           leaveTypes={leaveTypes ?? []}
           initialRequests={formattedRequests}
         />
+        <Pagination page={page} total={count ?? 0} />
       </main>
     </div>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -62,6 +62,9 @@ export function InvoiceManagementClient({
   projects,
   lines,
   payments,
+  selectedInvoice,
+  confirmedAmount,
+  pendingAmount,
 }: {
   userId: string
   roles: AppRole[]
@@ -69,18 +72,26 @@ export function InvoiceManagementClient({
   projects: { id: string; name: string; budget_currency: string }[]
   lines: Line[]
   payments: Payment[]
+  selectedInvoice: Invoice | null
+  confirmedAmount: number | null
+  pendingAmount: number
 }) {
   const router = useRouter()
+  const params = useSearchParams()
   const supabase = createClient()
-  const [selectedId, setSelectedId] = useState(invoices[0]?.id || '')
+  function setSelectedId(id: string) {
+    const next = new URLSearchParams(params.toString())
+    next.set('invoice',id); next.delete('linePage'); next.delete('paymentPage')
+    router.push(`/dashboard/finance/invoices?${next}`)
+  }
   const [issuing, setIssuing] = useState(false)
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [projectId, setProjectId] = useState('')
   const [busy, setBusy] = useState(false)
   const canIssue = roles.some((role) => ['company_owner','finance_admin'].includes(role))
-  const selected = invoices.find((invoice) => invoice.id === selectedId) || null
+  const selected = selectedInvoice
   const selectedPayments = selected ? payments.filter((payment) => payment.invoice_id === selected.id) : []
-  const paid = selectedPayments.filter((payment) => payment.status === 'confirmed').reduce((sum, payment) => sum + Number(payment.amount), 0)
+  const paid = confirmedAmount == null ? null : Number(confirmedAmount)
 
   async function loadMilestones(nextProject: string) {
     setProjectId(nextProject)
@@ -114,7 +125,6 @@ export function InvoiceManagementClient({
       toast.success('Đã phát hành hóa đơn')
       setIssuing(false)
       setSelectedId(invoiceId)
-      router.refresh()
     } finally {
       setBusy(false)
     }
@@ -206,7 +216,7 @@ export function InvoiceManagementClient({
               <Field label="Ghi chú"><input name="notes" /></Field>
               <div className="form-actions"><Button type="submit" disabled={busy}>{busy ? 'Đang lưu…' : 'Ghi nhận chờ đối soát'}</Button></div>
             </form>}
-            {canIssue && !['paid','voided'].includes(selected.status) && selected.issued_by!==userId && selectedPayments.some((payment) => payment.status==='pending') && <div className="form-actions"><Button variant="ghost" disabled={busy} onClick={() => void reconcile()}>{busy ? 'Đang đối soát…' : 'Đối soát thanh toán'}</Button></div>}
+            {canIssue && !['paid','voided'].includes(selected.status) && selected.issued_by!==userId && Number(pendingAmount)>0 && <div className="form-actions"><Button variant="ghost" disabled={busy} onClick={() => void reconcile()}>{busy ? 'Đang đối soát…' : 'Đối soát thanh toán'}</Button></div>}
           </div>
         </Card>
       )}

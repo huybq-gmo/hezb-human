@@ -2,6 +2,8 @@
 
 Bộ migration này triển khai contract của **các trang hiện có**: profile, role, membership, nhân sự/hợp đồng/skill/rate/nghỉ phép, dự án/proposal/milestone, issue/comment/attachment, worklog/timesheet, dashboard và thông báo trong ứng dụng. Không đánh dấu các phase hoàn thành toàn bộ.
 
+Migration 017 bổ sung directory/weekly aggregate views, điều chỉnh giờ sau khóa có duyệt độc lập và candidate reminder chưa nộp. Chưa lên Cloud; toàn bộ migration đến 017 và 60 assertion đã chạy trên PostgreSQL WASM cô lập với Auth/Storage shims. Xem [báo cáo và lệnh kiểm tra](../docs/timesheet-followup-2026-10-06.md).
+
 ## Triển khai Cloud tự động
 
 Xem [web/README.md](../web/README.md). `web/scripts/setup-supabase.mjs` dùng `psql`, `SUPABASE_DB_URL` (Direct connection hoặc Session pooler) và `NEXT_PUBLIC_SUPABASE_URL` để xác minh cùng project. Điền mật khẩu riêng trong `SUPABASE_DB_PASSWORD`, giữ `[YOUR-PASSWORD]` trong connection string. Mặc định chỉ kiểm tra; `--apply` mới ghi. Secret dùng qua environment của process, không nằm trong argv hoặc output.
@@ -48,5 +50,7 @@ Trên Supabase local/test project, bật extension pgTAP trong schema `extension
 Đã kiểm tra migration trên PostgreSQL 16 riêng với các schema Auth/Storage được mô phỏng và pgTAP 1.3.2. Điều này xác minh SQL/RLS/RPC, chưa thay thế kiểm tra Auth thật, Data API, upload tệp và Realtime trên Cloud. `pnpm check:supabase --cloud` kiểm tra kết nối/schema Data API; tiếp tục kiểm tra UI bằng user thật sau triển khai.
 
 ## Phần còn lại của plan v3
+
+Đợt hoàn thiện MVP có migrations 015–016 cho worklog/contact/parent issue, Skill Matrix, dashboard utilization và tổng payment. Test mới ở `tests/mvp_completion.test.sql` có 56 assertion, chưa chạy trong môi trường phát triển hiện tại. Áp dụng migration trên DB test và chạy lại toàn bộ SQL suite trước khi deploy; xem [báo cáo chức năng local](../docs/mvp-completion-2026-10-06.md).
 
 Schedule, Vault secrets và Resend chưa được cấu hình trên Supabase đích; xem [hướng dẫn deploy email reminders](../docs/email-reminders-deploy.md). Observability chưa nối production error sink; payroll gross/net, approval, lock và payslip đang chờ chính sách HR/kế toán. Cần UAT upload/Realtime/attendance trên Supabase đích. Xem [kế hoạch và trạng thái phase](../docs/implementation-plan-remaining.md). `tests/phase*.sql` ở root là fixture tham khảo, không thay thế suite ở đây.

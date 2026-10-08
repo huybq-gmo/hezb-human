@@ -44,6 +44,7 @@ export function Sidebar() {
       title: 'Dự án',
       items: [
         { label: 'Dự án', href: '/dashboard/projects', icon: FolderKanban },
+        { label: 'Khách hàng', href: '/dashboard/clients', icon: Users },
         { label: 'Board & ticket', href: '/dashboard/issues', icon: Kanban },
       ],
     },

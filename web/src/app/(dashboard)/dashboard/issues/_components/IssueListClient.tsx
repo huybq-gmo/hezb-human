@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { IssueParentPicker } from '@/components/IssueParentPicker'
 import { Kanban, List, Plus, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
@@ -51,18 +52,28 @@ export function IssueListClient({
   issues,
   projects,
   initialProject = '',
+  initialSprint = '',
+  initialSearch = '',
+  initialOverdue = false,
+  sprints,
 }: {
   issues: Issue[]
   projects: Project[]
   initialProject?: string
+  initialSprint?: string
+  initialSearch?: string
+  initialOverdue?: boolean
+  sprints: { id: string; project_id: string; name: string; status: string }[]
 }) {
   const router = useRouter()
+  const params = useSearchParams()
   const supabase = createClient()
   const user = useWorkspace()
   const { busyId, transition, nextStatuses } = useIssueActions()
   const [project, setProject] = useState(initialProject)
-  const [search, setSearch] = useState('')
-  const [overdue, setOverdue] = useState(false)
+  const [search, setSearch] = useState(initialSearch)
+  const overdue = initialOverdue
+  const [newProject, setNewProject] = useState(initialProject)
   const [view, setView] = useState('kanban')
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -70,14 +81,10 @@ export function IssueListClient({
   const canCreate =
     user.hasRole('company_owner', 'project_manager') ||
     user.memberships.some((m) => !project || m.project_id === project)
-  const query = search.trim().toLocaleLowerCase('vi')
   const filtered = issues.filter(
     (issue) =>
       (!project || issue.project_id === project) &&
-      (!overdue || issue.is_overdue) &&
-      [issue.title, issueCode(issue), issue.project_project?.name].some(
-        (text) => text?.toLocaleLowerCase('vi').includes(query),
-      ),
+      (!overdue || issue.is_overdue),
   )
   const columns = [
     ...COLUMNS,
@@ -99,6 +106,7 @@ export function IssueListClient({
       status: 'backlog',
       reporter_id: user.id,
       created_by: user.id,
+      parent_id: String(data.get('parent_id') || '') || null,
     })
     setSaving(false)
     if (error) {
@@ -125,6 +133,14 @@ export function IssueListClient({
       ))}
     </div>
   )
+  function navigate(updates: Record<string, string>) {
+    const next = new URLSearchParams(params.toString())
+    for (const [key, value] of Object.entries(updates)) {
+      if (value) next.set(key, value); else next.delete(key)
+    }
+    next.delete('page')
+    router.push(`/dashboard/issues?${next}`)
+  }
   return (
     <div className="stack">
       <div className="toolbar toolbar-between">
@@ -132,7 +148,7 @@ export function IssueListClient({
           <select
             aria-label="Lọc dự án"
             value={project}
-            onChange={(e) => setProject(e.target.value)}
+            onChange={(e) => { setProject(e.target.value); navigate({ project: e.target.value, sprint: '' }) }}
           >
             <option value="">Tất cả dự án</option>
             {projects.map((p) => (
@@ -144,15 +160,19 @@ export function IssueListClient({
           <button
             className={cn('f', overdue && 'on')}
             aria-pressed={overdue}
-            onClick={() => setOverdue((v) => !v)}
+            onClick={() => navigate({ overdue: overdue ? '' : '1' })}
           >
             Quá hạn
           </button>
-          <SearchField
+          <select aria-label="Lọc Sprint" value={initialSprint} onChange={(event) => navigate({ sprint: event.target.value })}>
+            <option value="">Tất cả Sprint</option><option value="backlog">Backlog / chưa gán</option>
+            {sprints.filter((sprint) => !project || sprint.project_id === project).map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
+          </select>
+          <form className="toolbar" onSubmit={(event) => { event.preventDefault(); navigate({ q: search }) }}><SearchField
             placeholder="Tìm ticket…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-          />
+          /><Button type="submit" size="sm" variant="ghost">Tìm</Button></form>
         </div>
         <div className="toolbar">
           <button
@@ -344,7 +364,7 @@ export function IssueListClient({
         >
           <form onSubmit={create}>
             <Field label="Dự án">
-              <select name="project_id" required defaultValue={project}>
+              <select name="project_id" required value={newProject} onChange={(event) => setNewProject(event.target.value)}>
                 <option value="">Chọn dự án</option>
                 {projects
                   .filter(
@@ -359,6 +379,7 @@ export function IssueListClient({
                   ))}
               </select>
             </Field>
+            <IssueParentPicker key={newProject} projectId={newProject} />
             <Field label="Tiêu đề">
               <input
                 name="title"

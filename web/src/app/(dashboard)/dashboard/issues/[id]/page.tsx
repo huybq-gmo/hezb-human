@@ -3,13 +3,18 @@ import { createClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/Topbar'
 import { QueryNotice } from '@/components/ui'
 import { IssueDetailClient } from './_components/IssueDetailClient'
+import { Pagination } from '@/components/Pagination'
+import { PAGE_SIZE, pageNumber, type SearchValues } from '@/lib/list-query'
 
 export default async function IssueDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>
+  searchParams: Promise<SearchValues>
 }) {
   const { id } = await params
+  const childPage = pageNumber((await searchParams).childPage)
   const supabase = await createClient()
   const { data: issue, error } = await supabase
     .from('work_issue_with_sla')
@@ -78,12 +83,17 @@ export default async function IssueDetailPage({
       (Array.isArray(log.hr_employee) ? log.hr_employee[0] : log.hr_employee)
         ?.full_name || 'Nhân sự',
   }))
+  const [parent, children] = await Promise.all([
+    issue.parent_id ? supabase.from('work_issue').select('id,title,type,status').eq('id', issue.parent_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    supabase.from('work_issue').select('id,title,type,status', { count: 'exact' }).eq('parent_id', id)
+      .order('created_at').order('id').range((childPage - 1) * PAGE_SIZE, childPage * PAGE_SIZE - 1),
+  ])
   return (
     <div className="page">
       <Topbar title="Ticket" subtitle={project?.name} />
       <main id="main-content" className="page-content">
         <QueryNotice
-          failed={[comments, logs, profiles].some((result) => !!result.error)}
+          failed={[comments, logs, profiles, parent, children].some((result) => !!result.error)}
         />
         <IssueDetailClient
           issue={{ ...issue, project_project: project }}
@@ -92,7 +102,10 @@ export default async function IssueDetailPage({
           assignee={names.get(issue.assignee_id) || null}
           reporter={names.get(issue.reporter_id) || null}
           assignees={assignees}
+          parent={parent.data}
+          childrenIssues={children.data ?? []}
         />
+        {!!children.count && <Pagination page={childPage} total={children.count} parameter="childPage" />}
       </main>
     </div>
   )

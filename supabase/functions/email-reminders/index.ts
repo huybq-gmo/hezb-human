@@ -1,7 +1,8 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { groupUnsubmitted, unsubmittedReminder } from './unsubmitted.mjs'
 
 type Reminder = {
-  type: 'issue_overdue' | 'timesheet_pending'
+  type: 'issue_overdue' | 'timesheet_pending' | 'timesheet_unsubmitted'
   entityId: string
   recipientId: string
   email: string
@@ -154,10 +155,24 @@ async function main(req: Request) {
     }
   }
 
-  const unique = [...new Map(reminders.map((item) => [`${item.type}:${item.entityId}:${item.recipientId}`, item])).values()].slice(0, 500)
+  const missingRows = []
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await supabase.rpc('get_unsubmitted_timesheet_reminders', {
+      p_today: today, p_offset: offset, p_limit: 500,
+    })
+    if (error) return json({ error: 'UNSUBMITTED_QUERY_FAILED' }, 500)
+    missingRows.push(...(data ?? []))
+    if ((data ?? []).length < 500) break
+  }
+  for (const group of groupUnsubmitted(missingRows)) {
+    const email = await emailFor(group.recipientId)
+    if (email) reminders.push(unsubmittedReminder(group, email) as Reminder)
+  }
+  const unique = [...new Map(reminders.map((item) => [`${item.type}:${item.entityId}:${item.recipientId}`, item])).values()]
   const totals = {
     issues: unique.filter((item) => item.type === 'issue_overdue').length,
     timesheets: unique.filter((item) => item.type === 'timesheet_pending').length,
+    unsubmitted: unique.filter((item) => item.type === 'timesheet_unsubmitted').length,
   }
   if (dryRun) return json({ dry_run: true, reminder_date: today, candidates: unique.length, totals })
 

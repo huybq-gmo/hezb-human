@@ -2,6 +2,8 @@
 
 The `email-reminders` Edge Function sends a daily reminder for overdue, open issues and timesheets waiting at the current approval step. A dry run reports counts only. Each entity/recipient pair is claimed once per Vietnam calendar day; failed sends can retry, while a stale in-flight claim can be reclaimed after ten minutes.
 
+After migration **017**, it also reminds employees who have not fully submitted the last completed Monday–Sunday week. Candidates include active employees with effective project membership on weekdays, excluding approved leave, locked periods and submitted coverage. Employees with no worklogs are included. Missing projects are grouped into one email per employee/day; dry-run adds `totals.unsubmitted`. Candidate lookup is a service-role-only RPC, paginated in batches of 500. The weekly submission policy is documented in [timesheet follow-up](timesheet-followup-2026-10-06.md); different period/holiday policies require configuration work.
+
 Deploy the function after applying migrations:
 
 ```sh

@@ -21,6 +21,7 @@ import {
 } from '@/lib/presentation'
 import { cn } from '@/lib/utils'
 import { IssueAttachments } from './IssueAttachments'
+import { IssueParentPicker } from '@/components/IssueParentPicker'
 
 interface Issue {
   id: string
@@ -35,6 +36,8 @@ interface Issue {
   is_overdue: boolean
   assignee_id: string | null
   reporter_id: string
+  parent_id: string | null
+  version: number
   project_project?: { name: string; code: string | null } | null
 }
 interface Comment {
@@ -90,6 +93,8 @@ export function IssueDetailClient({
   assignee,
   reporter,
   assignees,
+  parent,
+  childrenIssues,
 }: {
   issue: Issue
   comments: Comment[]
@@ -97,6 +102,8 @@ export function IssueDetailClient({
   assignee: string | null
   reporter: string | null
   assignees: { id: string; name: string }[]
+  parent: { id: string; title: string; type: string; status: string } | null
+  childrenIssues: { id: string; title: string; type: string; status: string }[]
 }) {
   const router = useRouter()
   const supabase = createClient()
@@ -109,6 +116,7 @@ export function IssueDetailClient({
   const [files, setFiles] = useState<File[]>([])
   const [editingIssue, setEditingIssue] = useState(false)
   const [savingIssue, setSavingIssue] = useState(false)
+  const [savingParent, setSavingParent] = useState(false)
   const canWrite =
     user.hasRole('company_owner', 'project_manager') ||
     user.memberships.some((m) => m.project_id === issue.project_id)
@@ -198,6 +206,25 @@ export function IssueDetailClient({
       setSavingIssue(false)
     }
   }
+  async function saveParent(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (savingParent) return
+    const data = new FormData(event.currentTarget)
+    setSavingParent(true)
+    try {
+      const { error } = await supabase.rpc('set_issue_parent', {
+        p_issue_id: issue.id, p_parent_id: String(data.get('parent_id') || '') || null, p_expected_version: issue.version,
+      })
+      if (error) {
+        toast.error(error.message.includes('PARENT_CYCLE') ? 'Không thể tạo quan hệ ticket vòng lặp.'
+          : error.message.includes('STALE_VERSION') ? 'Ticket đã thay đổi. Hãy tải lại trang trước khi lưu.'
+            : 'Không thể đổi ticket cha. Kiểm tra quyền, trạng thái và dự án.')
+        return
+      }
+      toast.success('Đã cập nhật ticket cha')
+      router.refresh()
+    } finally { setSavingParent(false) }
+  }
   const logLink = `/dashboard/worklogs?log=1&project=${issue.project_id}&issue=${issue.id}`
   return (
     <div className="stack">
@@ -227,6 +254,20 @@ export function IssueDetailClient({
       </div>
       <div className="detail-grid">
         <div className="stack">
+          <Card title="Epic / story và ticket con">
+            <div className="card-body stack">
+              <p>Ticket cha: {parent ? <Link className="text-link" href={`/dashboard/issues/${parent.id}`}>{parent.type}: {parent.title}</Link> : 'Không có'}</p>
+              {canEditIssue && <form className="stack" onSubmit={saveParent}>
+                <IssueParentPicker key={`${issue.id}:${issue.version}`} projectId={issue.project_id} excludeId={issue.id}
+                  defaultValue={issue.parent_id || ''} defaultLabel={parent?.title} disabled={savingParent} />
+                <Button type="submit" size="sm" disabled={savingParent}>{savingParent ? 'Đang lưu…' : 'Lưu ticket cha'}</Button>
+              </form>}
+              {!childrenIssues.length ? <p className="muted">Chưa có ticket con.</p> : <div className="table-scroll"><table>
+                <thead><tr><th>Ticket con</th><th>Loại</th><th>Trạng thái</th></tr></thead>
+                <tbody>{childrenIssues.map((child) => <tr key={child.id}><td><Link className="text-link" href={`/dashboard/issues/${child.id}`}>{child.title}</Link></td><td>{ISSUE_TYPES[child.type] || child.type}</td><td><StatusBadge status={child.status} /></td></tr>)}</tbody>
+              </table></div>}
+            </div>
+          </Card>
           <Card title="Mô tả">
             <div className="card-body whitespace-pre-wrap">
               {issue.description ? (
