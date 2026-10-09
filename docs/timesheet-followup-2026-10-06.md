@@ -47,4 +47,4 @@ node web/scripts/check-timesheet-db.mjs
 
 ## Còn lại
 
-Payroll 8b/8c cần chốt chính sách tính lương; `/api/health` và production error sink chưa bổ sung. Khi có env: áp dụng migrations 015–017, chạy pgTAP, UAT theo role thật, kiểm thử thao tác đồng thời, Auth/Storage/Realtime, email dry-run/gửi thật và cài Cron.
+Payroll 8b/8c cần chốt chính sách tính lương. **Cập nhật 2026-10-08:** `/api/health`, `/api/health/ready` và Sentry instrumentation đã được bổ sung trong source; DSN và xác minh nhận event production còn chờ cấu hình. Khi có env: áp dụng migrations 015–017, chạy pgTAP, UAT theo role thật, kiểm thử thao tác đồng thời, Auth/Storage/Realtime, email dry-run/gửi thật và cài Cron.

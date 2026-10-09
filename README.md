@@ -1,5 +1,7 @@
 # Hezb Human
 
+Hướng dẫn dành cho người dùng ứng dụng: [Hướng dẫn sử dụng Hezb ERP](docs/huong-dan-su-dung.md).
+
 ## Cấu hình môi trường
 
 File env của ứng dụng đặt ở **`web/.env.local`**, cùng cấp với `web/package.json`. File env cho Edge Function đặt ở **`supabase/functions/.env`**. Không cần file env ở thư mục gốc. Các file chứa giá trị thật đã được Git bỏ qua; file `.env.example` là mẫu có thể commit.
@@ -14,7 +16,6 @@ File env của ứng dụng đặt ở **`web/.env.local`**, cùng cấp với `
 | `SUPABASE_DB_URL` | Chạy `setup:supabase` | Connection string từ Connect, Direct hoặc Session pooler, cổng 5432. |
 | `SUPABASE_DB_PASSWORD` | Khi DB URL chưa chứa mật khẩu thật | Mật khẩu database, đặt trong dấu nháy kép; ký tự `$` viết thành `\$`. |
 | `SUPABASE_OWNER_EMAIL` | Tùy chọn khi cấp Owner đầu tiên | Email user đã xác nhận trong Supabase Auth; có thể dùng `--owner-email EMAIL` thay thế. |
-| `NEXT_PUBLIC_HEZB_DEMO` | Tùy chọn | `0` cho ứng dụng thường, `1` để bật demo trong development; `dev:demo` tự đặt biến này. |
 
 Điền URL và public API key từ Supabase Dashboard của bạn. Không dùng service role/secret key cho các biến `NEXT_PUBLIC_*`. Với database, có thể giữ `[YOUR-PASSWORD]` trong connection string và điền mật khẩu riêng vào `SUPABASE_DB_PASSWORD`. File được Next.js và các script quản trị tự đọc; khởi động lại server sau khi sửa.
 

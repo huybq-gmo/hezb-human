@@ -21,17 +21,6 @@ export default async function DashboardLayout({
           <Sidebar />
         </Suspense>
         <div className="app-main">
-          {user.demoMode && (
-            <div className="demo-notice" role="status">
-              <span>Xem thử · Dữ liệu mẫu · Chỉ xem</span>
-              <form action="/auth/demo" method="post">
-                <input type="hidden" name="action" value="exit" />
-                <button type="submit" className="text-link">
-                  Về dữ liệu thật
-                </button>
-              </form>
-            </div>
-          )}
           {children}
         </div>
       </div>

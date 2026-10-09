@@ -145,26 +145,51 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                   }
                 />
               ) : (
-                utilizationRows.map((row) => (
-                  <div key={row.employee_id} className="utilization-row">
-                    <span className="truncate" title={row.full_name}>
-                      {row.full_name || 'Nhân sự'}
-                    </span>
-                    <Progress
-                      label={`Giờ được duyệt của ${row.full_name}`}
-                      value={Number(row.utilization_pct) || 0}
-                      max={100}
-                    />
-                    <b className="num text-right">
-                      {row.utilization_pct == null ? '—' : `${Number(row.utilization_pct)}%`}
-                      <small className="block muted">{Number(row.approved_hours)}h / {Number(row.capacity_hours)}h</small>
-                      <small className="block muted">{Number(row.active_projects)} dự án có giờ đã duyệt</small>
-                    </b>
-                  </div>
-                ))
+                <div className="utilization-list">
+                  {utilizationRows.map((row) => {
+                    const utilizationPct = row.utilization_pct == null
+                      ? null
+                      : Number(row.utilization_pct)
+                    const employeeName = row.full_name || 'Nhân sự'
+                    const overCapacity = utilizationPct != null && utilizationPct > 90
+
+                    return (
+                      <div key={row.employee_id} className="utilization-row">
+                        <div className="utilization-heading">
+                          <span className="utilization-name" title={employeeName}>
+                            {employeeName}
+                          </span>
+                          <strong className={`num utilization-percent${overCapacity ? ' over' : ''}`}>
+                            {utilizationPct == null ? '—' : `${utilizationPct}%`}
+                          </strong>
+                        </div>
+                        {utilizationPct == null ? (
+                          <span className="utilization-no-capacity">Chưa có capacity trong kỳ</span>
+                        ) : (
+                          <Progress
+                            label={`Utilization của ${employeeName}`}
+                            value={utilizationPct}
+                            max={100}
+                            danger={overCapacity}
+                          />
+                        )}
+                        <div className="utilization-meta">
+                          <span>
+                            <strong className="num">{Number(row.approved_hours)}h</strong>
+                            {' '}đã duyệt
+                            <span className="muted"> / {Number(row.capacity_hours)}h capacity</span>
+                          </span>
+                          <span className="muted">
+                            {Number(row.active_projects)} dự án có giờ đã duyệt
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               )}
-              <p className="muted">
-                Giờ đã duyệt / capacity trong kỳ. Capacity tính 8h mỗi ngày làm việc, trừ nghỉ phép đã duyệt; khi lọc dự án, dùng allocation đã duyệt. Không có capacity sẽ hiển thị “—”.
+              <p className="muted utilization-note">
+                Capacity tính 8h mỗi ngày làm việc, trừ nghỉ phép đã duyệt; khi lọc dự án, capacity dựa trên allocation đã duyệt. Không có capacity sẽ hiển thị “—”.
               </p>
               <Pagination page={utilizationPage} total={utilizationRows[0]?.total_count ?? 0} parameter="utilPage" />
             </div>

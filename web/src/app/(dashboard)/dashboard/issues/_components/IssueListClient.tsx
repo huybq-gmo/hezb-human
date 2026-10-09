@@ -55,6 +55,7 @@ export function IssueListClient({
   initialSprint = '',
   initialSearch = '',
   initialOverdue = false,
+  totalCount,
   sprints,
 }: {
   issues: Issue[]
@@ -63,6 +64,7 @@ export function IssueListClient({
   initialSprint?: string
   initialSearch?: string
   initialOverdue?: boolean
+  totalCount: number
   sprints: { id: string; project_id: string; name: string; status: string }[]
 }) {
   const router = useRouter()
@@ -74,7 +76,7 @@ export function IssueListClient({
   const [search, setSearch] = useState(initialSearch)
   const overdue = initialOverdue
   const [newProject, setNewProject] = useState(initialProject)
-  const [view, setView] = useState('kanban')
+  const [view, setView] = useState('list')
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [dragOver, setDragOver] = useState<string | null>(null)
@@ -86,6 +88,32 @@ export function IssueListClient({
       (!project || issue.project_id === project) &&
       (!overdue || issue.is_overdue),
   )
+  const overview = [
+    {
+      label: 'Chờ xử lý',
+      value: filtered.filter((issue) =>
+        ['backlog', 'todo'].includes(issue.status),
+      ).length,
+      detail: 'Backlog và cần làm',
+    },
+    {
+      label: 'Đang thực hiện',
+      value: filtered.filter((issue) =>
+        ['in_progress', 'in_review'].includes(issue.status),
+      ).length,
+      detail: 'Đang làm và review',
+    },
+    {
+      label: 'Quá hạn',
+      value: filtered.filter((issue) => issue.is_overdue).length,
+      detail: 'Cần ưu tiên xử lý',
+    },
+    {
+      label: 'Hoàn thành',
+      value: filtered.filter((issue) => issue.status === 'done').length,
+      detail: 'Đã hoàn tất',
+    },
+  ]
   const columns = [
     ...COLUMNS,
     ...['backlog', 'blocked', 'cancelled'].filter((status) =>
@@ -133,6 +161,30 @@ export function IssueListClient({
       ))}
     </div>
   )
+  const listAction = (issue: Issue) => {
+    const targets = nextStatuses(issue)
+    return (
+      <select
+        className="issue-transition"
+        aria-label={`Chuyển trạng thái ticket ${issueCode(issue)}`}
+        value=""
+        disabled={!targets.length || busyId !== null}
+        onChange={(event) => {
+          const target = event.target.value
+          if (target) void transition(issue, target)
+        }}
+      >
+        <option value="">
+          {targets.length ? 'Chuyển trạng thái' : 'Không có thao tác'}
+        </option>
+        {targets.map((target) => (
+          <option key={target} value={target}>
+            {STATUS_LABELS[target]}
+          </option>
+        ))}
+      </select>
+    )
+  }
   function navigate(updates: Record<string, string>) {
     const next = new URLSearchParams(params.toString())
     for (const [key, value] of Object.entries(updates)) {
@@ -143,72 +195,124 @@ export function IssueListClient({
   }
   return (
     <div className="stack">
-      <div className="toolbar toolbar-between">
-        <div className="toolbar">
-          <select
-            aria-label="Lọc dự án"
-            value={project}
-            onChange={(e) => { setProject(e.target.value); navigate({ project: e.target.value, sprint: '' }) }}
+      <section className="issue-controls" aria-label="Bộ lọc ticket">
+        <div className="issue-filter-grid">
+          <label className="issue-filter-field">
+            <span>Dự án</span>
+            <select
+              aria-label="Lọc dự án"
+              value={project}
+              onChange={(e) => {
+                setProject(e.target.value)
+                navigate({ project: e.target.value, sprint: '' })
+              }}
+            >
+              <option value="">Tất cả dự án</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="issue-filter-field">
+            <span>Sprint</span>
+            <select
+              aria-label="Lọc Sprint"
+              value={initialSprint}
+              onChange={(event) => navigate({ sprint: event.target.value })}
+            >
+              <option value="">Tất cả Sprint</option>
+              <option value="backlog">Backlog / chưa gán</option>
+              {sprints
+                .filter((sprint) => !project || sprint.project_id === project)
+                .map((sprint) => (
+                  <option key={sprint.id} value={sprint.id}>
+                    {sprint.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <form
+            className="issue-search-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              navigate({ q: search })
+            }}
           >
-            <option value="">Tất cả dự án</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <button
-            className={cn('f', overdue && 'on')}
-            aria-pressed={overdue}
-            onClick={() => navigate({ overdue: overdue ? '' : '1' })}
-          >
-            Quá hạn
-          </button>
-          <select aria-label="Lọc Sprint" value={initialSprint} onChange={(event) => navigate({ sprint: event.target.value })}>
-            <option value="">Tất cả Sprint</option><option value="backlog">Backlog / chưa gán</option>
-            {sprints.filter((sprint) => !project || sprint.project_id === project).map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
-          </select>
-          <form className="toolbar" onSubmit={(event) => { event.preventDefault(); navigate({ q: search }) }}><SearchField
-            placeholder="Tìm ticket…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          /><Button type="submit" size="sm" variant="ghost">Tìm</Button></form>
+            <div className="issue-filter-field">
+              <label htmlFor="issue-search-input">Tìm theo tiêu đề</label>
+              <span className="issue-search-row">
+                <SearchField
+                  id="issue-search-input"
+                  placeholder="Nhập tên ticket…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <Button type="submit" size="sm" variant="ghost">
+                  Tìm
+                </Button>
+              </span>
+            </div>
+          </form>
+          <div className="issue-filter-field issue-quick-filter">
+            <span>Lọc nhanh</span>
+            <button
+              className={cn('f', overdue && 'on')}
+              aria-pressed={overdue}
+              onClick={() => navigate({ overdue: overdue ? '' : '1' })}
+            >
+              Chỉ ticket quá hạn
+            </button>
+          </div>
         </div>
-        <div className="toolbar">
-          <button
-            className={cn(
-              'ib',
-              view === 'kanban' && 'text-[var(--pri)] bg-[var(--pri-s)]',
+        <div className="issue-controls-footer">
+          <p className="muted">
+            {totalCount} ticket phù hợp · đang hiển thị {filtered.length} ticket
+          </p>
+          <div className="issue-view-actions">
+            <div className="issue-view-toggle" aria-label="Chế độ hiển thị">
+              <button
+                className={cn('issue-view-button', view === 'list' && 'active')}
+                aria-label="Xem danh sách"
+                aria-pressed={view === 'list'}
+                onClick={() => setView('list')}
+              >
+                <List size={16} /> Danh sách
+              </button>
+              <button
+                className={cn('issue-view-button', view === 'kanban' && 'active')}
+                aria-label="Xem Kanban"
+                aria-pressed={view === 'kanban'}
+                onClick={() => setView('kanban')}
+              >
+                <Kanban size={16} /> Kanban
+              </button>
+            </div>
+            {canCreate && (
+              <Button size="sm" onClick={() => setCreating(true)}>
+                <Plus size={15} />
+                Tạo ticket
+              </Button>
             )}
-            aria-label="Xem Kanban"
-            aria-pressed={view === 'kanban'}
-            onClick={() => setView('kanban')}
-          >
-            <Kanban size={17} />
-          </button>
-          <button
-            className={cn(
-              'ib',
-              view === 'list' && 'text-[var(--pri)] bg-[var(--pri-s)]',
-            )}
-            aria-label="Xem danh sách"
-            aria-pressed={view === 'list'}
-            onClick={() => setView('list')}
-          >
-            <List size={17} />
-          </button>
-          {canCreate && (
-            <Button size="sm" onClick={() => setCreating(true)}>
-              <Plus size={15} />
-              Tạo ticket
-            </Button>
-          )}
+          </div>
         </div>
-      </div>
-      <p className="muted">
-        {filtered.length} ticket · Kéo ticket sang cột khác hoặc dùng nút chuyển
-        trạng thái.
-      </p>
+      </section>
+      <section className="issue-overview" aria-label="Tổng quan ticket đang hiển thị">
+        <div className="issue-overview-heading">
+          <h2>Tổng quan</h2>
+          <span>Phân bổ trong trang hiện tại</span>
+        </div>
+        <div className="issue-overview-grid">
+          {overview.map((item) => (
+            <div className="issue-stat" key={item.label}>
+              <span>{item.label}</span>
+              <strong className="num">{item.value}</strong>
+              <small>{item.detail}</small>
+            </div>
+          ))}
+        </div>
+      </section>
       {view === 'kanban' ? (
         <div className="kanban">
           {columns.map((status) => {
@@ -296,7 +400,15 @@ export function IssueListClient({
           })}
         </div>
       ) : (
-        <Card>
+        <Card className="issue-list-card">
+          <div className="issue-list-heading">
+            <div>
+              <h2>Danh sách ticket</h2>
+              <p>
+                Quét nhanh trạng thái, mức ưu tiên và hạn xử lý của từng ticket.
+              </p>
+            </div>
+          </div>
           {!filtered.length ? (
             <EmptyState title="Không có ticket phù hợp" />
           ) : (
@@ -309,16 +421,22 @@ export function IssueListClient({
                     <th>Trạng thái</th>
                     <th>Ưu tiên</th>
                     <th>Hạn</th>
-                    <th>Chuyển tiếp</th>
+                    <th aria-label="Thao tác"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((issue) => (
                     <tr key={issue.id}>
                       <td>
-                        <small className="muted num">{issueCode(issue)}</small>
+                        <div className="issue-row-meta">
+                          <small className="num">{issueCode(issue)}</small>
+                          <span>{ISSUE_TYPES[issue.type] || issue.type}</span>
+                          {issue.story_points != null && (
+                            <span>{issue.story_points} điểm</span>
+                          )}
+                        </div>
                         <Link
-                          className="block font-medium hover:text-[var(--pri)]"
+                          className="issue-row-title"
                           href={`/dashboard/issues/${issue.id}`}
                         >
                           {issue.title}
@@ -326,28 +444,37 @@ export function IssueListClient({
                       </td>
                       <td>{issue.project_project?.name || '—'}</td>
                       <td>
-                        <StatusBadge status={issue.status} />
+                        <div className="issue-badge-stack">
+                          <StatusBadge status={issue.status} />
+                          {issue.is_overdue ? (
+                            <StatusBadge status="overdue" />
+                          ) : issue.sla_status === 'at_risk' ? (
+                            <StatusBadge status="at_risk" />
+                          ) : null}
+                        </div>
                       </td>
                       <td>
                         <Badge
                           tone={
-                            ['high', 'critical'].includes(issue.priority)
+                            issue.priority === 'critical'
                               ? 'er'
-                              : 'neutral'
+                              : issue.priority === 'high'
+                                ? 'wn'
+                                : 'neutral'
                           }
                         >
                           {PRIORITIES[issue.priority]}
                         </Badge>
                       </td>
-                      <td className="num whitespace-nowrap">
-                        {formatDate(issue.due_date)}
-                        {issue.is_overdue && (
-                          <div className="mt-1">
-                            <StatusBadge status="overdue" />
-                          </div>
+                      <td
+                        className={cn(
+                          'issue-due num whitespace-nowrap',
+                          issue.is_overdue && 'overdue',
                         )}
+                      >
+                        {formatDate(issue.due_date)}
                       </td>
-                      <td>{actions(issue)}</td>
+                      <td>{listAction(issue)}</td>
                     </tr>
                   ))}
                 </tbody>

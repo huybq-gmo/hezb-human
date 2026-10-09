@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Pencil, Plus } from 'lucide-react'
+import { ArrowRight, Pencil, Plus, Trash2, UserRoundPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useWorkspace } from '@/components/layout/WorkspaceProvider'
@@ -23,6 +23,7 @@ interface Employee {
   id: string
   employee_code?: string
   full_name: string
+  email: string | null
   type: string
   status: string
   job_title?: string | null
@@ -76,6 +77,20 @@ const CONTRACT_LABELS: Record<string, string> = {
   indefinite: 'Không thời hạn',
   freelance: 'Freelance',
 }
+function todayInVietnam() {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .formatToParts(new Date())
+    .reduce<Record<string, string>>((values, part) => {
+      if (part.type !== 'literal') values[part.type] = part.value
+      return values
+    }, {})
+  return `${parts.year}-${parts.month}-${parts.day}`
+}
 
 export function EmployeeDetailClient({
   employee,
@@ -97,6 +112,16 @@ export function EmployeeDetailClient({
   const user = useWorkspace()
   const [tab, setTab] = useState('info')
   const [next, setNext] = useState<string | null>(null)
+  const [accountDialog, setAccountDialog] = useState(false)
+  const [accountAction, setAccountAction] = useState<'invite' | 'link-existing'>(
+    'invite',
+  )
+  const [accountEmail, setAccountEmail] = useState(employee.email || '')
+  const [accountError, setAccountError] = useState('')
+  const [contractDialog, setContractDialog] = useState(false)
+  const [skillDialog, setSkillDialog] = useState(false)
+  const [rateDialog, setRateDialog] = useState(false)
+  const [skillToDelete, setSkillToDelete] = useState<Skill | null>(null)
   const [balanceDraft, setBalanceDraft] = useState<{
     id?: string
     leave_type_id: string
@@ -106,13 +131,176 @@ export function EmployeeDetailClient({
   const [busy, setBusy] = useState(false)
   const canManage = user.hasRole('company_owner', 'hr_admin')
   const canRates = user.hasRole('company_owner', 'hr_admin', 'finance_admin')
+  const canReadContracts = user.hasRole(
+    'company_owner',
+    'hr_admin',
+    'finance_admin',
+  )
+  const canReadLeaveBalances = canManage || employee.user_id === user.id
   const tabs = [
     ['info', 'Thông tin chung'],
-    ['contracts', `Hợp đồng (${contracts.length})`],
+    ...(canReadContracts ? [['contracts', `Hợp đồng (${contracts.length})`]] : []),
     ['skills', `Kỹ năng (${skills.length})`],
     ...(canRates ? [['rates', `Đơn giá (${rates.length})`]] : []),
-    ['leave', 'Nghỉ phép'],
+    ...(canReadLeaveBalances ? [['leave', 'Nghỉ phép']] : []),
   ]
+  async function saveContract(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const startDate = String(data.get('start_date') || '')
+    const endDate = String(data.get('end_date') || '') || null
+    if (endDate && endDate < startDate) {
+      toast.error('Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { error } = await supabase.from('hr_contract').insert({
+        employee_id: employee.id,
+        contract_type: String(data.get('contract_type') || ''),
+        start_date: startDate,
+        end_date: endDate,
+        notes: String(data.get('notes') || '').trim() || null,
+        created_by: user.id,
+      })
+      if (error) {
+        toast.error('Không thể thêm hợp đồng. Kiểm tra quyền và dữ liệu.')
+        return
+      }
+      toast.success('Đã thêm hợp đồng vào lịch sử')
+      setContractDialog(false)
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function saveSkill(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const skillName = String(data.get('skill_name') || '').trim()
+    if (
+      skills.some(
+        (skill) =>
+          skill.skill_name.trim().toLocaleLowerCase('vi') ===
+          skillName.toLocaleLowerCase('vi'),
+      )
+    ) {
+      toast.error('Kỹ năng này đã có trong hồ sơ nhân sự.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { error } = await supabase.from('hr_skill').insert({
+        employee_id: employee.id,
+        skill_name: skillName,
+        level: String(data.get('level') || '') || null,
+        certified_at: String(data.get('certified_at') || '') || null,
+        created_by: user.id,
+      })
+      if (error) {
+        toast.error('Không thể thêm kỹ năng. Kiểm tra quyền và dữ liệu.')
+        return
+      }
+      toast.success('Đã thêm kỹ năng')
+      setSkillDialog(false)
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function deleteSkill() {
+    if (!skillToDelete) return
+    setBusy(true)
+    try {
+      const { error } = await supabase
+        .from('hr_skill')
+        .delete()
+        .eq('id', skillToDelete.id)
+        .eq('employee_id', employee.id)
+      if (error) {
+        toast.error('Không thể xóa kỹ năng. Kiểm tra quyền truy cập.')
+        return
+      }
+      toast.success('Đã xóa kỹ năng')
+      setSkillToDelete(null)
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function saveRate(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const data = new FormData(event.currentTarget)
+    const currency = String(data.get('currency') || '').trim().toUpperCase()
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      toast.error('Mã tiền tệ cần gồm đúng 3 chữ cái, ví dụ VND.')
+      return
+    }
+    setBusy(true)
+    try {
+      const { error } = await supabase.rpc('save_employee_rate', {
+        p_employee_id: employee.id,
+        p_rate_type: String(data.get('rate_type') || ''),
+        p_amount: Number(data.get('amount')),
+        p_currency: currency,
+        p_effective_from: String(data.get('effective_from') || ''),
+        p_effective_to: String(data.get('effective_to') || '') || null,
+      })
+      if (error) {
+        let message = 'Không thể thêm đơn giá. Kiểm tra quyền và khoảng hiệu lực.'
+        if (error.message.includes('RATE_END_BEFORE_PREVIOUS')) {
+          message =
+            'Khoảng hiệu lực mới phải nối tiếp hết kỳ đơn giá cũ. Nếu kỳ cũ không có ngày kết thúc, hãy để trống ngày kết thúc mới.'
+        } else if (error.message.includes('RATE_RANGE_CONFLICT')) {
+          message =
+            'Khoảng hiệu lực bị trùng với đơn giá đã lên lịch. Hãy kiểm tra lại ngày.'
+        } else if (error.code === '23P01') {
+          message =
+            'Khoảng hiệu lực vừa được cập nhật và đang bị trùng. Hãy tải lại hồ sơ rồi thử lại.'
+        } else if (error.message.includes('FORBIDDEN')) {
+          message = 'Bạn không có quyền cập nhật đơn giá.'
+        }
+        toast.error(message)
+        return
+      }
+      toast.success('Đã thêm đơn giá có hiệu lực')
+      setRateDialog(false)
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
+  }
+  async function submitAccountLink(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setBusy(true)
+    setAccountError('')
+    try {
+      const response = await fetch('/api/admin/employee-accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: accountAction,
+          employeeId: employee.id,
+          email: accountEmail,
+        }),
+      })
+      const result = (await response.json()) as {
+        message?: string
+        error?: string
+      }
+      if (!response.ok) {
+        setAccountError(result.error || 'Không thể liên kết tài khoản.')
+        return
+      }
+      toast.success(result.message || 'Đã liên kết tài khoản với nhân sự.')
+      setAccountDialog(false)
+      router.refresh()
+    } catch {
+      setAccountError('Không thể kết nối máy chủ. Vui lòng thử lại.')
+    } finally {
+      setBusy(false)
+    }
+  }
   async function transition(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusy(true)
@@ -243,18 +431,57 @@ export function EmployeeDetailClient({
               <dd>{formatDate(employee.hire_date)}</dd>
             </dl>
           </Card>
-          <Card title="Tài khoản liên kết">
+          <Card
+            title="Tài khoản liên kết"
+            action={
+              canManage && !employee.user_id ? (
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setAccountAction('invite')
+                    setAccountEmail(employee.email || '')
+                    setAccountError('')
+                    setAccountDialog(true)
+                  }}
+                >
+                  <UserRoundPlus size={15} /> Mời / liên kết
+                </Button>
+              ) : null
+            }
+          >
             <dl className="card-body key-values">
+              <dt>Email</dt>
+              <dd>{employee.email || 'Chưa có email'}</dd>
               <dt>Tài khoản</dt>
-              <dd className="text-xs">{employee.user_id || 'Chưa liên kết'}</dd>
+              <dd>
+                {employee.user_id ? (
+                  <div className="stack">
+                    <Badge tone="ok">Đã liên kết</Badge>
+                    <span className="text-xs break-all muted">
+                      {employee.user_id}
+                    </span>
+                  </div>
+                ) : (
+                  <Badge tone="wn">Chưa liên kết</Badge>
+                )}
+              </dd>
               <dt>Ngày tạo hồ sơ</dt>
               <dd>{formatDate(employee.created_at)}</dd>
             </dl>
           </Card>
         </div>
       )}
-      {tab === 'contracts' && (
-        <Card title="Lịch sử hợp đồng">
+      {tab === 'contracts' && canReadContracts && (
+        <Card
+          title="Lịch sử hợp đồng"
+          action={
+            canManage ? (
+              <Button size="sm" onClick={() => setContractDialog(true)}>
+                <Plus size={15} /> Thêm hợp đồng
+              </Button>
+            ) : null
+          }
+        >
           {!contracts.length ? (
             <EmptyState title="Chưa có hợp đồng được lưu trữ" />
           ) : (
@@ -291,7 +518,16 @@ export function EmployeeDetailClient({
         </Card>
       )}
       {tab === 'skills' && (
-        <Card title="Kỹ năng chuyên môn">
+        <Card
+          title="Kỹ năng chuyên môn"
+          action={
+            canManage ? (
+              <Button size="sm" onClick={() => setSkillDialog(true)}>
+                <Plus size={15} /> Thêm kỹ năng
+              </Button>
+            ) : null
+          }
+        >
           {!skills.length ? (
             <EmptyState title="Chưa cập nhật kỹ năng" />
           ) : (
@@ -308,6 +544,16 @@ export function EmployeeDetailClient({
                       } as Record<string, string>
                     )[skill.level || ''] || skill.level}
                   </span>
+                  {canManage && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={`Xóa kỹ năng ${skill.skill_name}`}
+                      onClick={() => setSkillToDelete(skill)}
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -315,7 +561,16 @@ export function EmployeeDetailClient({
         </Card>
       )}
       {tab === 'rates' && canRates && (
-        <Card title="Lịch sử đơn giá">
+        <Card
+          title="Lịch sử đơn giá"
+          action={
+            canManage ? (
+              <Button size="sm" onClick={() => setRateDialog(true)}>
+                <Plus size={15} /> Thêm đơn giá
+              </Button>
+            ) : null
+          }
+        >
           {!rates.length ? (
             <EmptyState title="Chưa có đơn giá" />
           ) : (
@@ -358,7 +613,7 @@ export function EmployeeDetailClient({
           )}
         </Card>
       )}
-      {tab === 'leave' && (
+      {tab === 'leave' && canReadLeaveBalances && (
         <div className="stack">
           {canManage && (
             <div className="toolbar toolbar-end">
@@ -430,6 +685,193 @@ export function EmployeeDetailClient({
             </div>
           )}
         </div>
+      )}
+      {contractDialog && (
+        <Dialog
+          title="Thêm hợp đồng"
+          onClose={() => setContractDialog(false)}
+          busy={busy}
+        >
+          <form onSubmit={saveContract}>
+            <p className="muted mb-4">
+              Hợp đồng được lưu vào lịch sử. Không thể sửa hoặc xóa sau khi tạo.
+            </p>
+            <Field label="Loại hợp đồng">
+              <select name="contract_type" required defaultValue="probation">
+                <option value="probation">Thử việc</option>
+                <option value="fixed_term">Có thời hạn</option>
+                <option value="indefinite">Không thời hạn</option>
+                <option value="freelance">Freelance</option>
+              </select>
+            </Field>
+            <div className="form-grid">
+              <Field label="Ngày bắt đầu">
+                <input name="start_date" type="date" required />
+              </Field>
+              <Field label="Ngày kết thúc">
+                <input name="end_date" type="date" />
+              </Field>
+            </div>
+            <Field label="Ghi chú">
+              <textarea name="notes" maxLength={2000} />
+            </Field>
+            <div className="form-actions">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setContractDialog(false)}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={busy}>
+                {busy ? 'Đang lưu…' : 'Thêm hợp đồng'}
+              </Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+      {skillDialog && (
+        <Dialog
+          title="Thêm kỹ năng"
+          onClose={() => setSkillDialog(false)}
+          busy={busy}
+        >
+          <form onSubmit={saveSkill}>
+            <Field label="Tên kỹ năng">
+              <input
+                name="skill_name"
+                required
+                minLength={2}
+                maxLength={100}
+                autoFocus
+                placeholder="Ví dụ: TypeScript"
+              />
+            </Field>
+            <div className="form-grid">
+              <Field label="Mức độ">
+                <select name="level" defaultValue="">
+                  <option value="">Chưa đánh giá</option>
+                  <option value="beginner">Cơ bản</option>
+                  <option value="intermediate">Thành thạo</option>
+                  <option value="expert">Chuyên gia</option>
+                </select>
+              </Field>
+              <Field label="Ngày chứng nhận (nếu có)">
+                <input name="certified_at" type="date" />
+              </Field>
+            </div>
+            <div className="form-actions">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setSkillDialog(false)}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={busy}>
+                {busy ? 'Đang lưu…' : 'Thêm kỹ năng'}
+              </Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+      {skillToDelete && (
+        <Dialog
+          title="Xóa kỹ năng"
+          onClose={() => setSkillToDelete(null)}
+          busy={busy}
+        >
+          <p className="mb-5">
+            Xóa kỹ năng <b>{skillToDelete.skill_name}</b> khỏi hồ sơ của{' '}
+            {employee.full_name}?
+          </p>
+          <div className="form-actions">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={busy}
+              onClick={() => setSkillToDelete(null)}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={busy}
+              onClick={() => void deleteSkill()}
+            >
+              {busy ? 'Đang xóa…' : 'Xóa kỹ năng'}
+            </Button>
+          </div>
+        </Dialog>
+      )}
+      {rateDialog && (
+        <Dialog
+          title="Thêm đơn giá"
+          onClose={() => setRateDialog(false)}
+          busy={busy}
+        >
+          <form onSubmit={saveRate}>
+            <p className="muted mb-4">
+              Đơn giá cũ được giữ trong lịch sử. Nếu kỳ cũ đang còn hiệu lực,
+              hệ thống tự kết thúc kỳ đó vào ngày trước ngày bắt đầu mới.
+            </p>
+            <Field label="Loại đơn giá">
+              <select name="rate_type" required defaultValue="monthly">
+                <option value="hourly">Theo giờ</option>
+                <option value="daily">Theo ngày</option>
+                <option value="monthly">Theo tháng</option>
+              </select>
+            </Field>
+            <div className="form-grid">
+              <Field label="Mức đơn giá">
+                <input
+                  name="amount"
+                  type="number"
+                  min="0.0001"
+                  step="0.0001"
+                  required
+                />
+              </Field>
+              <Field label="Tiền tệ">
+                <input
+                  name="currency"
+                  required
+                  minLength={3}
+                  maxLength={3}
+                  pattern="[A-Za-z]{3}"
+                  defaultValue="VND"
+                />
+              </Field>
+              <Field label="Hiệu lực từ">
+                <input
+                  name="effective_from"
+                  type="date"
+                  required
+                  defaultValue={todayInVietnam()}
+                />
+              </Field>
+              <Field label="Hiệu lực đến (tùy chọn)">
+                <input name="effective_to" type="date" />
+              </Field>
+            </div>
+            <div className="form-actions">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setRateDialog(false)}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={busy}>
+                {busy ? 'Đang lưu…' : 'Thêm đơn giá'}
+              </Button>
+            </div>
+          </form>
+        </Dialog>
       )}
       {balanceDraft && (
         <Dialog
@@ -518,6 +960,72 @@ export function EmployeeDetailClient({
               </Button>
               <Button type="submit" disabled={busy}>
                 {busy ? 'Đang lưu…' : 'Lưu hạn mức'}
+              </Button>
+            </div>
+          </form>
+        </Dialog>
+      )}
+      {accountDialog && (
+        <Dialog
+          title="Mời hoặc liên kết tài khoản"
+          onClose={() => setAccountDialog(false)}
+          busy={busy}
+        >
+          <form onSubmit={submitAccountLink}>
+            <p className="muted mb-4">
+              Tài khoản sẽ được liên kết với hồ sơ của {employee.full_name}.
+            </p>
+            <Field label="Cách xử lý tài khoản">
+              <select
+                value={accountAction}
+                onChange={(event) =>
+                  setAccountAction(
+                    event.target.value as 'invite' | 'link-existing',
+                  )
+                }
+              >
+                <option value="invite">Mời tài khoản mới</option>
+                <option value="link-existing">
+                  Liên kết tài khoản đã có
+                </option>
+              </select>
+            </Field>
+            <Field label="Email tài khoản">
+              <input
+                type="email"
+                value={accountEmail}
+                onChange={(event) => setAccountEmail(event.target.value)}
+                maxLength={254}
+                autoComplete="email"
+                autoFocus={!employee.email}
+                required
+              />
+            </Field>
+            <p className="muted mb-4">
+              {accountAction === 'invite'
+                ? 'Supabase gửi email để người nhận xác nhận và tự đặt mật khẩu. Email này sẽ được lưu vào hồ sơ; Owner cần cấp vai trò tại trang Phân quyền.'
+                : 'Email phải trùng với email tài khoản Supabase Auth và sẽ được lưu vào hồ sơ nhân sự.'}
+            </p>
+            {accountError && (
+              <p className="field-error" role="alert">
+                {accountError}
+              </p>
+            )}
+            <div className="form-actions">
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => setAccountDialog(false)}
+              >
+                Hủy
+              </Button>
+              <Button type="submit" disabled={busy}>
+                {busy
+                  ? 'Đang xử lý…'
+                  : accountAction === 'invite'
+                    ? 'Gửi lời mời'
+                    : 'Liên kết tài khoản'}
               </Button>
             </div>
           </form>

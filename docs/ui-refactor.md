@@ -34,17 +34,11 @@ Nguồn thiết kế: `Hezb ERP — Giao diện.html`. Luồng nghiệp vụ đ�
 
 ## Chạy và kiểm tra
 
-Trong `web/`, dùng Node 24 qua `nvm use` (có `.nvmrc`), rồi `pnpm dev`. Node mặc định 18 của môi trường hiện tại không đáp ứng yêu cầu của Next.js đã cài.
+Trong `web/`, dùng Node 24 qua `nvm use` (có `.nvmrc`), cấu hình Supabase trong `.env.local`, rồi chạy `pnpm dev`. Các trang chỉ đọc dữ liệu trong database theo phiên đăng nhập và quyền của tài khoản.
 
-Để xem dữ liệu mẫu ngay trong web, chạy `pnpm dev` rồi chọn **Xem dữ liệu mẫu** trên `/login` hoặc sidebar. Bộ mẫu tại `web/src/lib/demo/data.mjs` gồm 12 nhân sự, 5 dự án, 18 ticket và dữ liệu liên quan. Transport trong bộ nhớ dùng chung cho các truy vấn server/client, không chạy API riêng. Nhãn dữ liệu mẫu có nút **Về dữ liệu thật**; các thao tác lưu/duyệt/upload bị từ chối và phiên Cloud được giữ nguyên. `pnpm dev:demo` vẫn dùng được khi chưa có cấu hình Supabase. Production không cho vào chế độ mẫu. Hướng dẫn ở `web/README.md`.
+**Cập nhật 2026-10-08:** chế độ xem dữ liệu giả lập trong web, cookie preview và lệnh `dev:demo` đã được gỡ sau khi ứng dụng dùng dữ liệu Supabase. Script `seed:dashboard-sample` là tiện ích riêng để nạp record vào database mới; giao diện không dùng fixture của script này. Các kết quả preview bên dưới là lịch sử kiểm tra trước khi gỡ và không phải chức năng hiện hành.
 
-Chế độ dữ liệu mẫu tích hợp đã qua 7 kiểm tra SDK/dữ liệu và 26 kiểm tra trình duyệt: mở các trang và chi tiết, bộ lọc, form chỉ xem, theme, thông báo, mobile, trang không tồn tại, không gửi yêu cầu tới Supabase, thoát chế độ mẫu và giữ cookie khác cùng `.env.local`. Sáu kiểm tra bổ sung xác nhận production không hiện nút mẫu, bỏ qua cookie mẫu, từ chối endpoint mẫu và lệnh demo; `dev:demo` vẫn hoạt động không cần `.env.local` hoặc API riêng. Build production và TypeScript đạt.
-
-```sh
-pnpm typecheck
-pnpm test:demo
-pnpm build
-```
+### Kết quả kiểm tra lịch sử trước khi gỡ preview
 
 Trong môi trường sandbox chặn cổng nội bộ của Turbopack, kiểm tra build bằng `pnpm build --webpack` với quyền chạy ngoài sandbox. Không cần đổi bundler mặc định của dự án.
 

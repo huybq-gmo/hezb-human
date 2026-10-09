@@ -1,15 +1,13 @@
-// Synthetic fixtures used directly by the web preview. No real user data.
-export const DEMO_EMAIL = 'owner@hezb.test'
-export const DEMO_PASSWORD = 'hezb-demo'
-export const OWNER_ID = '11111111-1111-4111-8111-111111111111'
-export const PROJECT_ID = '33333333-3333-4333-8333-333333333333'
-export const EMPLOYEE_ID = '44444444-4444-4444-8444-444444444444'
-export const ISSUE_ID = '55555555-5555-4555-8555-555555555555'
+// Synthetic records used only by the optional database seeding script.
+const OWNER_ID = '11111111-1111-4111-8111-111111111111'
+const PROJECT_ID = '33333333-3333-4333-8333-333333333333'
+const EMPLOYEE_ID = '44444444-4444-4444-8444-444444444444'
+const ISSUE_ID = '55555555-5555-4555-8555-555555555555'
 
 const id = (group, number) =>
   `${group.toString(16).padStart(8, '0')}-0000-4000-8000-${String(number).padStart(12, '0')}`
 
-export function createDemoData() {
+export function createDashboardSampleData() {
   const now = new Date().toISOString()
   const today = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Ho_Chi_Minh',

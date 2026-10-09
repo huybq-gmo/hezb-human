@@ -52,7 +52,6 @@ export function Notifications() {
   useEffect(() => {
     if (!user.id) return
     void refresh()
-    if (user.demoMode) return
     const channel = supabase
       .channel(`notifications:${user.id}`)
       .on(
@@ -71,7 +70,7 @@ export function Notifications() {
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [supabase, user.id, user.demoMode, refresh])
+  }, [supabase, user.id, refresh])
   useEffect(() => {
     if (!open) return
     const outside = (event: PointerEvent) => {

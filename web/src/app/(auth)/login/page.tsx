@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { HezbLogo, HezbMark } from '@/components/HezbLogo'
-import { isDemoAvailable } from '@/lib/demo'
 import { Button, Field } from '@/components/ui'
 
 const schema = z.object({
@@ -21,6 +20,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [magicLoading, setMagicLoading] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const {
     register,
@@ -81,6 +81,32 @@ export default function LoginPage() {
       setMagicLoading(false)
     }
   }
+  async function resetPassword() {
+    const email = getValues('email').trim()
+    if (!z.email().safeParse(email).success) {
+      setErrorMessage('Vui lòng nhập email công ty hợp lệ trước.')
+      return
+    }
+    setResetLoading(true)
+    setErrorMessage(null)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+      })
+      if (error) {
+        setErrorMessage('Không thể gửi email khôi phục. Vui lòng thử lại sau.')
+        return
+      }
+      toast.success(
+        'Nếu email này thuộc tài khoản, hướng dẫn đặt lại mật khẩu sẽ được gửi đến hộp thư.',
+      )
+    } catch {
+      setErrorMessage('Không thể kết nối. Vui lòng thử lại sau.')
+    } finally {
+      setResetLoading(false)
+    }
+  }
   return (
     <div className="login">
       <div className="login-brand">
@@ -101,22 +127,6 @@ export default function LoginPage() {
             <HezbLogo />
           </div>
           <h2>Đăng nhập</h2>
-          {isDemoAvailable && (
-            <div className="demo-entry">
-              <p className="muted">
-                Xem các trang với dữ liệu mẫu, không cần tài khoản.
-              </p>
-              <form action="/auth/demo" method="post">
-                <Button
-                  type="submit"
-                  variant="ghost"
-                  disabled={loading || magicLoading}
-                >
-                  Xem dữ liệu mẫu
-                </Button>
-              </form>
-            </div>
-          )}
           <form onSubmit={handleSubmit(login)}>
             <Field label="Email công ty" error={errors.email?.message}>
               <input
@@ -141,16 +151,31 @@ export default function LoginPage() {
                 {errorMessage}
               </div>
             )}
-            <Button type="submit" disabled={loading || magicLoading}>
+            <Button
+              type="submit"
+              disabled={loading || magicLoading || resetLoading}
+            >
               {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
             </Button>
+            <button
+              type="button"
+              className="text-link text-right py-1 login-forgot-password"
+              disabled={
+                loading ||
+                magicLoading ||
+                resetLoading
+              }
+              onClick={() => void resetPassword()}
+            >
+              {resetLoading ? 'Đang gửi hướng dẫn…' : 'Quên mật khẩu?'}
+            </button>
             <button
               type="button"
               className="text-link text-center py-1"
               disabled={
                 loading ||
                 magicLoading ||
-                process.env.NEXT_PUBLIC_HEZB_DEMO === '1'
+                resetLoading
               }
               onClick={() => void magicLink()}
             >

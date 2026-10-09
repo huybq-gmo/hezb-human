@@ -59,6 +59,7 @@ export default async function IssuesPage({
           initialSprint={sprint}
           initialSearch={query}
           initialOverdue={overdue}
+          totalCount={issues.count ?? 0}
         />
         <Pagination page={page} total={issues.count ?? 0} />
       </main>

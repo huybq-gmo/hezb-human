@@ -1,6 +1,14 @@
 # Kế hoạch triển khai các phase còn lại
 
-Ngày rà soát: 2026-10-06. Kế hoạch này lấy source và migrations hiện tại làm chuẩn; các checkbox trong `docs/phases/` vẫn là checklist thiết kế, chưa được cập nhật theo mức độ triển khai thực tế.
+Ngày rà soát source: 2026-10-08. Trạng thái Cloud/database bên dưới được kiểm tra gần nhất ngày 2026-10-06, chưa xác minh lại trong lần cập nhật này. Kế hoạch lấy source và migrations hiện tại làm chuẩn; các checkbox trong `docs/phases/` vẫn là checklist thiết kế, chưa được cập nhật theo mức độ triển khai thực tế.
+
+### Cập nhật triển khai ngày 2026-10-08
+
+**Health check và theo dõi lỗi production:** source đã có `GET /api/health` (liveness) và `GET /api/health/ready` (readiness, probe Supabase Auth, timeout 2,5 giây, trả 503 khi chưa sẵn sàng). SDK Sentry được nối cho client/server/edge; Next.js `onRequestError` gửi lỗi render/API kèm route, request ID và error digest. Sự kiện được lọc thông tin request, user, breadcrumb và nội dung lỗi trước khi gửi. Xem [hướng dẫn deploy health check và Sentry](health-monitoring-deploy.md).
+
+**Còn chờ vận hành:** chưa có Sentry DSN trong môi trường hiện tại, nên chưa xác nhận event đến project production. Cần tạo project và cấu hình `NEXT_PUBLIC_SENTRY_DSN`/`SENTRY_DSN`; token/org/project chỉ cần ở bước build nếu muốn upload source map. Alert/workflow cũng cần cấu hình trong Sentry nếu muốn gửi thông báo cho nhóm trực. Readiness chỉ kiểm tra Supabase Auth, không phải health check database. Build/tests chưa chạy cho phần cập nhật này.
+
+**HR cập nhật:** hồ sơ nhân sự có form thêm hợp đồng append-only, thêm/xóa kỹ năng và thêm đơn giá theo ngày hiệu lực. Migration `202610080001_hr_employee_rate_write.sql` bổ sung RPC kiểm tra quyền và chuyển kỳ đơn giá không chồng lấn; migration mới chưa được xác minh trên Supabase Cloud.
 
 ### Cập nhật triển khai ngày 2026-10-06
 
@@ -17,7 +25,7 @@ Ngày rà soát: 2026-10-06. Kế hoạch này lấy source và migrations hiệ
 
 | Phase | Đã có trong source | Phần cần làm tiếp |
 |---|---|---|
-| 0 — Foundation | CI, structured error logging, request ID, migration reset, frontend checks và pgTAP chạy được | Bổ sung Sentry/production error sink nếu tổ chức chọn nhà cung cấp; kiểm chứng observability trên môi trường triển khai |
+| 0 — Foundation | CI, structured error logging, request ID, migration reset, frontend checks/pgTAP; health endpoints và Sentry instrumentation đã có trong source | Cấu hình Sentry DSN, tùy chọn upload source map; deploy và xác nhận health probes cùng error events trên môi trường triển khai |
 | 1 — Auth/RBAC | Live role grants, project membership, Owner-only capability matrix wired into DB RLS/RPC, protected Owner/Finance capabilities, custom permission codes alias approved capability, UI hides revoke Owner and RPC preserves last Owner | UAT ma trận role trên Supabase thật; custom code chọn trong các capability nghiệp vụ đã được bảo vệ, không tự tạo quyền SQL mới |
 | 2 — HR | Hồ sơ/lifecycle, hợp đồng/skill/rate, leave balance/request, team và leader HR UI/RPC; phòng ban đã bị loại khỏi UI/API/schema | UAT HR trên Supabase thật; team hỗ trợ nhiều nhóm mỗi nhân sự và một trưởng nhóm hoạt động cho mỗi team |
 | 3 — Project | CRUD project, client/contact cơ bản, proposal, membership/role, milestone, allocation, rate snapshot và capacity UI/RPC | UAT trên Supabase thật; tinh chỉnh luồng theo quy trình vận hành thực tế |
@@ -35,9 +43,9 @@ Ngày rà soát: 2026-10-06. Kế hoạch này lấy source và migrations hiệ
 
 **Phạm vi:** Phase 0 còn thiếu, rà soát bảo mật Phase 1, chuẩn hóa test/migration trước khi mở rộng schema. Không làm lại auth hoặc live-role architecture.
 
-**Đã hoàn thành trong source:** CI chạy build, typecheck, Deno check và DB security suite; structured error logging có request ID; pgTAP allow/deny đã bao phủ RPC mới; ADR 001 mô tả capability mapping và nguyên tắc Owner/Finance được bảo vệ.
+**Đã hoàn thành trong source:** CI chạy build, typecheck, Deno check và DB security suite; structured error logging có request ID; health liveness/readiness; Sentry instrumentation cho client/server/edge với lọc dữ liệu nhạy cảm; pgTAP allow/deny đã bao phủ RPC mới; ADR 001 mô tả capability mapping và nguyên tắc Owner/Finance được bảo vệ.
 
-**Còn lại:** gắn production error sink nếu chọn nhà cung cấp và kiểm chứng log trên môi trường triển khai.
+**Còn lại:** cấu hình DSN cho Sentry, tùy chọn source map secrets, rồi deploy để kiểm chứng health probes và nhận error event production.
 
 **Nghiệm thu:** DB dựng được từ migrations hiện hành trên môi trường sạch; CI chạy build và security suite; test có cả allow/deny cho mỗi RPC nhạy cảm; role Owner cuối cùng không thể bị vô hiệu hóa.
 

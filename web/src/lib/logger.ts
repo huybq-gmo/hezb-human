@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/nextjs'
+
 type ErrorWithDigest = Error & { digest?: string }
 
 /** Log only non-sensitive error metadata; error messages may contain user data. */
@@ -17,4 +19,10 @@ export function logClientError(error: ErrorWithDigest) {
       timestamp: new Date().toISOString(),
     }),
   )
+  Sentry.captureException(error, {
+    tags: {
+      request_id: requestId || 'unknown',
+      error_digest: error.digest || 'unknown',
+    },
+  })
 }
