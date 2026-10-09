@@ -3,26 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=20.19.0 <22.0.0 || >=22.12.0 <23.0.0 || >=23.2.0"
   },
   "scripts": {
     "dev": "next dev",
-    "dev:demo": "node scripts/dev-demo.mjs",
     "check:supabase": "node scripts/check-supabase.mjs",
     "setup:supabase": "node scripts/setup-supabase.mjs",
+    "seed:dashboard-sample": "node scripts/seed-dashboard-sample.mjs",
     "test:supabase-config": "node --test scripts/supabase-db-config.test.mjs",
-    "test:demo": "node --test scripts/demo-data.test.mjs",
-    "test:reporting": "node --test scripts/reporting.test.mjs",
     "test:timesheet-followup": "node --test scripts/timesheet-followup.test.mjs",
     "test:timesheet-db": "node scripts/check-timesheet-db.mjs",
-    "test:smoke-demo": "node scripts/smoke-demo.mjs",
-    "check": "pnpm typecheck && pnpm test:supabase-config && pnpm test:demo && pnpm test:reporting && pnpm test:timesheet-followup",
+    "check": "pnpm typecheck && pnpm test:supabase-config && pnpm test:timesheet-followup",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
+    "@sentry/nextjs": "^11.4.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "class-variance-authority": "^0.7.1",

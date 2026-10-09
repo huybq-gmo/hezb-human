@@ -2,6 +2,10 @@
 
 Đây là trạng thái trước đợt triển khai tiếp theo. Các phần đã được bổ sung sau rà soát nằm trong [báo cáo hoàn thiện MVP](mvp-completion-2026-10-06.md); không dùng danh sách thiếu bên dưới để suy ra trạng thái source mới nhất.
 
+### Cập nhật sau rà soát — 2026-10-08
+
+Phase 0 hiện đã có `/api/health`, `/api/health/ready` và tích hợp Sentry cho lỗi client/server/API. Đây là trạng thái trong source; chưa cấu hình Sentry DSN hoặc xác nhận nhận sự kiện trên production. Readiness chỉ probe Supabase Auth. Xem [hướng dẫn cấu hình và deploy](health-monitoring-deploy.md). Bảng bên dưới và danh sách thiếu vẫn phản ánh snapshot ngày 2026-10-06.
+
 ## Kết luận
 
 **Chưa thực hiện hết chức năng trong plan v3 và checklist các phase.** Source đã có phần lớn luồng nghiệp vụ Phase 0–7 và phần mở kỳ/xuất CSV của Phase 8. Tuy nhiên, còn các chức năng chưa được lập trình, các phần UI chưa đủ yêu cầu, và các cổng nghiệm thu chưa được xác minh trên môi trường thật.

@@ -2,7 +2,6 @@ import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { APP_ROLE_LABELS, type AppRole } from '@/lib/types'
 import { localDate } from '@/lib/presentation'
-import { isDemoRequest } from '@/lib/demo/server'
 
 export const getWorkspaceUser = cache(async () => {
   const supabase = await createClient()
@@ -63,6 +62,5 @@ export const getWorkspaceUser = cache(async () => {
     email: user.email || '',
     roles,
     memberships: memberships.data ?? [],
-    demoMode: await isDemoRequest(),
   }
 })

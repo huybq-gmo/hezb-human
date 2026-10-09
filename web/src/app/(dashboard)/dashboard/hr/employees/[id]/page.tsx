@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Topbar } from '@/components/layout/Topbar'
 import { QueryNotice } from '@/components/ui'
 import { notFound } from 'next/navigation'
+import { getWorkspaceUser } from '@/lib/workspace'
 import { EmployeeDetailClient } from './_components/EmployeeDetailClient'
 
 export default async function EmployeeDetailPage({
@@ -11,6 +12,7 @@ export default async function EmployeeDetailPage({
 }) {
   const { id } = await params
   const supabase = await createClient()
+  const currentUser = await getWorkspaceUser()
   const { data: employee, error } = await supabase
     .from('hr_employee')
     .select('id,user_id,employee_code,full_name,email,phone,type,status,hire_date,terminate_date,created_at,created_by,updated_at,updated_by,version')
@@ -26,25 +28,40 @@ export default async function EmployeeDetailPage({
         </main>
       </div>
     )
+  const roles = currentUser?.roles ?? []
+  const canReadContracts = roles.some((role) =>
+    ['company_owner', 'hr_admin', 'finance_admin'].includes(role),
+  )
+  const canReadRates = canReadContracts
+  const canReadLeaveBalances =
+    roles.some((role) => ['company_owner', 'hr_admin'].includes(role)) ||
+    employee.user_id === currentUser?.id
+  const skippedQuery = { data: [] as never[], error: null }
   const [contracts, rates, balances, skills, leaveTypes] = await Promise.all([
-    supabase
-      .from('hr_contract')
-      .select('*')
-      .eq('employee_id', id)
-      .order('start_date', { ascending: false })
-      .limit(100),
-    supabase
-      .from('hr_employee_rate')
-      .select('*')
-      .eq('employee_id', id)
-      .order('effective_from', { ascending: false })
-      .limit(100),
-    supabase
-      .from('hr_leave_balance')
-      .select('*, hr_leave_type(name, code)')
-      .eq('employee_id', id)
-      .eq('year', new Date().getFullYear())
-      .limit(100),
+    canReadContracts
+      ? supabase
+          .from('hr_contract')
+          .select('*')
+          .eq('employee_id', id)
+          .order('start_date', { ascending: false })
+          .limit(100)
+      : skippedQuery,
+    canReadRates
+      ? supabase
+          .from('hr_employee_rate')
+          .select('*')
+          .eq('employee_id', id)
+          .order('effective_from', { ascending: false })
+          .limit(100)
+      : skippedQuery,
+    canReadLeaveBalances
+      ? supabase
+          .from('hr_leave_balance')
+          .select('*, hr_leave_type(name, code)')
+          .eq('employee_id', id)
+          .eq('year', new Date().getFullYear())
+          .limit(100)
+      : skippedQuery,
     supabase
       .from('hr_skill')
       .select('*')

@@ -2,42 +2,17 @@
 
 Giao diện Next.js theo `../Hezb ERP — Giao diện.html`. Yêu cầu Node 24 và pnpm; thư mục này có `.nvmrc`.
 
-## Xem giao diện mà chưa có tài khoản
+Hướng dẫn dành cho người dùng: [Hướng dẫn sử dụng Hezb ERP](../docs/huong-dan-su-dung.md).
 
-Dữ liệu mẫu nằm trực tiếp trong [src/lib/demo/data.mjs](src/lib/demo/data.mjs): 12 nhân sự, 5 dự án, 18 ticket, 5 timesheet, 8 worklog, 6 đơn nghỉ phép; có hợp đồng, kỹ năng, đơn giá, số dư phép, thành viên, milestone, bình luận và thông báo. Ngày của dữ liệu được tính theo tuần hiện tại.
-
-Khi đang chạy `pnpm dev`, bấm **Xem dữ liệu mẫu** tại trang login hoặc bên dưới sidebar. Các trang dùng cùng bộ dữ liệu trong web, không cần chạy thêm API hay nạp dữ liệu vào database. Nhãn **Xem thử · Dữ liệu mẫu · Chỉ xem** giúp nhận biết chế độ này; bấm **Về dữ liệu thật** để trở lại phiên Supabase đang có.
-
-Trong thư mục `web/`:
-
-```bash
-source ~/.nvm/nvm.sh
-nvm use
-pnpm install
-pnpm dev:demo
-```
-
-Nếu đã có dependencies thì bỏ qua `pnpm install`. Mở http://localhost:3000/login và bấm **Xem dữ liệu mẫu**. Dùng sidebar để mở các trang; bấm tên nhân sự, dự án hoặc ticket để xem chi tiết. Có thể kiểm tra bộ lọc, chuyển tab, theme sáng/tối, mở form và bố cục mobile.
-
-Lệnh `dev:demo` chạy Next.js với cấu hình xem thử và dùng cùng bộ dữ liệu trong web với quyền Owner. Các thao tác lưu, duyệt và upload bị từ chối vì đây là chế độ chỉ xem. Không cần Supabase hoặc `.env.local`; không có email được gửi. Nhấn Ctrl+C để dừng Next.js.
-
-Nếu cổng 3000 đang được dùng:
-
-```bash
-pnpm dev:demo --port 3001
-```
-
-Lúc này mở http://localhost:3001/login. Demo dùng thư mục `.next-demo` riêng nên có thể chạy cùng server dev thường ở cổng 3000.
-
-Nút xem thử chỉ hiện trong development. Production bỏ qua cookie xem thử và tiếp tục yêu cầu phiên Supabase thật. Phiên mẫu nằm trong bộ nhớ riêng, không thay thế cookie đăng nhập Cloud.
-
-## Chạy với Supabase thật
+## Chạy ứng dụng với Supabase
 
 Tạo `.env.local` trong `web/`:
 
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your-key
+SUPABASE_SECRET_KEY=sb_secret_your-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 Code ưu tiên `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` theo cấu hình hiện tại của Supabase. Tên cũ `NEXT_PUBLIC_SUPABASE_ANON_KEY` vẫn được hỗ trợ khi chưa khai báo publishable key.
@@ -46,7 +21,11 @@ Code ưu tiên `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` theo cấu hình hiện t�
 pnpm dev --webpack
 ```
 
-Đăng nhập bằng tài khoản đã tạo trong Supabase Auth. Schema, RLS và role cần được triển khai theo `../docs/phases/`; repo chưa có tài khoản mặc định. Tắt server demo trước khi chuyển sang server thật.
+Đăng nhập bằng tài khoản đã tạo trong Supabase Auth. Schema, RLS và role cần được triển khai theo `../docs/phases/`; repo chưa có tài khoản mặc định. Các trang đọc dữ liệu từ database theo quyền của tài khoản.
+
+Ứng dụng không có chế độ xem dữ liệu mẫu hoặc đăng nhập thử. Nếu danh sách trống, kiểm tra bộ lọc, dữ liệu trong database và quyền truy cập của tài khoản.
+
+Nếu quên mật khẩu, dùng **Quên mật khẩu?** trên trang đăng nhập. Supabase gửi email khôi phục; liên kết xác minh session qua `/auth/callback` rồi mở `/reset-password`. Trong **Authentication → URL Configuration → Redirect URLs**, cho phép callback của từng môi trường (ví dụ `http://localhost:3000/**` và `https://your-domain.example/**`); Supabase chỉ chuyển hướng tới URL trong allowlist. Cần cấu hình email provider/SMTP để nhận thư.
 
 Kiểm tra cấu hình Cloud và các bảng/view mà frontend cần:
 
@@ -80,7 +59,19 @@ Lệnh đầu chỉ kiểm tra. Lệnh có `--apply` triển khai migration và 
 
 Sau khi đăng nhập, Owner cấp role cho các user khác tại `/dashboard/admin/roles`. Nhân sự cần được liên kết với UUID Supabase Auth trong `hr_employee.user_id` để gửi nghỉ phép/giờ làm. Thiết lập số dư nghỉ phép và membership dự án bằng Table Editor/SQL Editor khi khởi tạo; UI hiện tại chưa có form cho các phần này. Database mới mở các trang với dữ liệu rỗng; migration không tạo dữ liệu kinh doanh mẫu hoặc mật khẩu mặc định.
 
+Nếu cần dữ liệu giả lập cho một database mới, script riêng `pnpm seed:dashboard-sample` cho xem trước và `pnpm seed:dashboard-sample -- --apply` để ghi. Script dừng nếu đã có dữ liệu nghiệp vụ. Đây là thao tác nạp record vào database, không phải chế độ xem thử của giao diện.
+
 Phạm vi schema, quy trình SQL Editor, kiểm tra RLS và phần phase chưa triển khai: [supabase/README.md](../supabase/README.md).
+
+Owner hoặc HR Admin có thể mời tài khoản mới hoặc liên kết tài khoản Auth đã tồn tại ngay trong hồ sơ nhân sự. Lời mời được gửi qua email provider/SMTP của Supabase; người nhận mở liên kết để đặt mật khẩu. Sau đó Owner cấp vai trò tại trang Phân quyền. Chức năng yêu cầu SUPABASE_SECRET_KEY ở máy chủ (hoặc SUPABASE_SERVICE_ROLE_KEY cũ) và migration 202610060018_employee_account_link.sql. Chỉ giữ khóa này trong biến môi trường server, không dùng tiền tố NEXT_PUBLIC_; cấu hình NEXT_PUBLIC_SITE_URL và cho phép URL /auth/callback trong Supabase Redirect URLs.
+
+## Health check và theo dõi lỗi production
+
+GET /api/health là liveness check, còn GET /api/health/ready kiểm tra cấu hình và khả năng truy cập Supabase Auth. Hai endpoint không yêu cầu đăng nhập, không lưu cache và chỉ trả trạng thái tổng quát; readiness trả HTTP 503 nếu Supabase Auth chưa sẵn sàng.
+
+Để nhận lỗi production, tạo project Sentry rồi đặt cùng DSN vào NEXT_PUBLIC_SENTRY_DSN và SENTRY_DSN trong môi trường ứng dụng. SDK gửi lỗi client, server component và API route; sự kiện được lọc request, user, breadcrumb, dữ liệu bổ sung và nội dung lỗi trước khi gửi. SENTRY_AUTH_TOKEN, SENTRY_ORG và SENTRY_PROJECT chỉ cần ở bước build nếu muốn upload source map để xem stack trace theo mã nguồn; giữ token trong secret của CI/hosting.
+
+Các bước cấu hình hosting, kiểm tra endpoint, xác nhận event staging và xử lý lỗi thường gặp: [hướng dẫn deploy health check và Sentry](../docs/health-monitoring-deploy.md).
 
 ## Kiểm tra và build
 

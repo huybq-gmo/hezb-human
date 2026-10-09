@@ -19,12 +19,12 @@ import {
   Network,
   LogOut,
   Search,
+  BookOpen,
 } from 'lucide-react'
 import { HezbLogo, HexagonAvatar } from '@/components/HezbLogo'
 import { useWorkspace } from './WorkspaceProvider'
 import { APP_ROLE_LABELS } from '@/lib/types'
 import { cn } from '@/lib/utils'
-import { isDemoAvailable } from '@/lib/demo'
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -107,6 +107,7 @@ export function Sidebar() {
           icon: Network,
         },
         { label: 'Tìm kiếm', href: '/dashboard/search', icon: Search },
+        { label: 'Hướng dẫn', href: '/dashboard/guide', icon: BookOpen },
         {
           label: 'Hồ sơ cá nhân',
           href: '/dashboard/profile',
@@ -155,13 +156,6 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      {isDemoAvailable && !user.demoMode && (
-        <form action="/auth/demo" method="post" className="sidebar-preview">
-          <button type="submit" className="btn ghost sm">
-            Xem dữ liệu mẫu
-          </button>
-        </form>
-      )}
       <div className="sidebar-user">
         <Link href="/dashboard/profile">
           <HexagonAvatar name={user.name} />
@@ -173,8 +167,8 @@ export function Sidebar() {
         <a
           href="/auth/logout"
           className="ib"
-          aria-label={user.demoMode ? 'Thoát dữ liệu mẫu' : 'Đăng xuất'}
-          title={user.demoMode ? 'Thoát dữ liệu mẫu' : 'Đăng xuất'}
+          aria-label="Đăng xuất"
+          title="Đăng xuất"
         >
           <LogOut size={16} />
         </a>

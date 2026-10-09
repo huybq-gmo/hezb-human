@@ -1,17 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getSupabaseConfig } from './config'
-import { DEMO_COOKIE, isDemoAvailable } from '../demo'
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
-  if (isDemoAvailable) {
-    if (request.nextUrl.pathname === '/auth/demo') return supabaseResponse
-    if (request.cookies.get(DEMO_COOKIE)?.value === '1') {
-      if (request.nextUrl.pathname === '/login') {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
-      }
-      return supabaseResponse
-    }
+  const pathname = request.nextUrl.pathname
+  if (pathname === '/api/health' || pathname.startsWith('/api/health/')) {
+    return supabaseResponse
   }
   const { url, key } = getSupabaseConfig()
   const supabase = createServerClient(url, key, {
@@ -33,11 +28,11 @@ export async function updateSession(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  const pathname = request.nextUrl.pathname
   if (
     !user &&
     !pathname.startsWith('/login') &&
-    !pathname.startsWith('/auth')
+    !pathname.startsWith('/auth') &&
+    pathname !== '/reset-password'
   ) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'

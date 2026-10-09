@@ -9,7 +9,6 @@ export interface WorkspaceUser {
   email: string
   roles: AppRole[]
   memberships: { project_id: string; project_role: string }[]
-  demoMode?: boolean
 }
 
 const WorkspaceContext = createContext<WorkspaceUser>({

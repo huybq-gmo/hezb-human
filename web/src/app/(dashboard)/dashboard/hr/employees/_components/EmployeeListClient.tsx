@@ -58,6 +58,7 @@ export function EmployeeListClient({
     const { error } = await supabase.from('hr_employee').insert({
       full_name: String(data.get('full_name')).trim(),
       employee_code: String(data.get('employee_code')).trim(),
+      email: String(data.get('email') || '').trim().toLowerCase() || null,
       type: data.get('type'),
       hire_date: data.get('hire_date') || null,
       status: 'onboarding',
@@ -262,6 +263,9 @@ export function EmployeeListClient({
               </Field>
               <Field label="Ngày vào làm">
                 <input name="hire_date" type="date" />
+              </Field>
+              <Field label="Email công ty (không bắt buộc)">
+                <input name="email" type="email" maxLength={254} />
               </Field>
             </div>
             {error && (
