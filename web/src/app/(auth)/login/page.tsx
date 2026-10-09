@@ -11,10 +11,62 @@ import { HezbLogo, HezbMark } from '@/components/HezbLogo'
 import { Button, Field } from '@/components/ui'
 
 const schema = z.object({
-  email: z.email('Email công ty không hợp lệ'),
+  email: z.string().trim().pipe(z.email('Email công ty không hợp lệ')),
   password: z.string().min(6, 'Mật khẩu tối thiểu 6 ký tự'),
 })
 type LoginForm = z.infer<typeof schema>
+
+function getRecoveryErrorMessage(error: {
+  code?: string
+  message?: string
+  status?: number
+}) {
+  const code = error.code?.toLowerCase() || ''
+  const message = error.message?.toLowerCase() || ''
+
+  if (
+    error.status === 429 ||
+    code.includes('rate_limit') ||
+    message.includes('rate limit') ||
+    message.includes('too many requests')
+  ) {
+    return code === 'over_email_send_rate_limit'
+      ? 'Dự án đã đạt giới hạn gửi email của Supabase. Cần chờ giới hạn được khôi phục hoặc cấu hình SMTP riêng.'
+      : 'Supabase đang giới hạn số yêu cầu khôi phục. Vui lòng chờ trước khi gửi lại.'
+  }
+
+  if (
+    code === 'email_address_not_authorized' ||
+    message.includes('email address not authorized')
+  ) {
+    return 'Supabase SMTP mặc định chưa cho phép gửi tới email này. Hãy cấu hình SMTP riêng trong Authentication → Emails → SMTP Settings.'
+  }
+
+  if (
+    code === 'redirect_to_not_allowed' ||
+    message.includes('redirect url') ||
+    message.includes('redirect_to')
+  ) {
+    return 'URL khôi phục chưa được cho phép. Thêm URL hiện tại với đường dẫn /auth/callback vào Authentication → URL Configuration → Redirect URLs.'
+  }
+
+  if (code === 'captcha_failed') {
+    return 'Supabase yêu cầu xác minh CAPTCHA nhưng chưa nhận được xác minh hợp lệ. Vui lòng liên hệ quản trị viên.'
+  }
+
+  if (/error sending (recovery )?email|smtp|mailer/.test(message)) {
+    return 'Supabase báo lỗi gửi email. Kiểm tra Auth Logs và cấu hình email của dự án.'
+  }
+
+  return 'Supabase từ chối yêu cầu gửi email khôi phục. Kiểm tra Authentication → Logs để xem mã lỗi cụ thể.'
+}
+
+function getAuthErrorReference(error: { code?: string; status?: number }) {
+  const code = error.code && /^[a-z0-9_]{1,80}$/i.test(error.code)
+    ? error.code
+    : 'auth_error'
+  return `Mã lỗi: ${code}${error.status ? ` · HTTP ${error.status}` : ''}`
+}
 
 export default function LoginPage() {
   const router = useRouter()
@@ -71,7 +123,7 @@ export default function LoginPage() {
         },
       })
       if (error) {
-        setErrorMessage('Không thể gửi liên kết đăng nhập. Vui lòng thử lại.')
+        setErrorMessage(`Không gửi được liên kết đăng nhập. ${getAuthErrorReference(error)}`)
         return
       }
       toast.success('Đã gửi magic link tới email của bạn')
@@ -95,7 +147,12 @@ export default function LoginPage() {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       })
       if (error) {
-        setErrorMessage('Không thể gửi email khôi phục. Vui lòng thử lại sau.')
+        console.error('Password recovery request failed', {
+          code: error.code,
+          status: error.status,
+          message: error.message,
+        })
+        setErrorMessage(`${getRecoveryErrorMessage(error)} ${getAuthErrorReference(error)}`)
         return
       }
       toast.success(

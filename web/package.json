@@ -13,7 +13,8 @@
     "test:supabase-config": "node --test scripts/supabase-db-config.test.mjs",
     "test:timesheet-followup": "node --test scripts/timesheet-followup.test.mjs",
     "test:timesheet-db": "node scripts/check-timesheet-db.mjs",
-    "check": "pnpm typecheck && pnpm test:supabase-config && pnpm test:timesheet-followup",
+    "test:auth-callback": "node --test scripts/auth-callback.test.mjs",
+    "check": "pnpm typecheck && pnpm test:supabase-config && pnpm test:timesheet-followup && pnpm test:auth-callback",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit"

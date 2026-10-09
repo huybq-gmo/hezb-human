@@ -25,7 +25,7 @@ pnpm dev --webpack
 
 Ứng dụng không có chế độ xem dữ liệu mẫu hoặc đăng nhập thử. Nếu danh sách trống, kiểm tra bộ lọc, dữ liệu trong database và quyền truy cập của tài khoản.
 
-Nếu quên mật khẩu, dùng **Quên mật khẩu?** trên trang đăng nhập. Supabase gửi email khôi phục; liên kết xác minh session qua `/auth/callback` rồi mở `/reset-password`. Trong **Authentication → URL Configuration → Redirect URLs**, cho phép callback của từng môi trường (ví dụ `http://localhost:3000/**` và `https://your-domain.example/**`); Supabase chỉ chuyển hướng tới URL trong allowlist. Cần cấu hình email provider/SMTP để nhận thư.
+Nếu quên mật khẩu, dùng **Quên mật khẩu?** trên trang đăng nhập. Supabase gửi email khôi phục; `/auth/callback` xác minh cả mã PKCE và session trong fragment của lời mời rồi mở `/reset-password`. Callback thất bại không mở form đổi mật khẩu bằng phiên đăng nhập cũ. Trang đặt mật khẩu hiện email đã được Auth xác minh; kiểm tra đúng tài khoản trước khi lưu. Trong **Authentication → URL Configuration → Redirect URLs**, cho phép callback của từng môi trường (ví dụ `http://localhost:3000/**` và `https://your-domain.example/**`); Supabase chỉ chuyển hướng tới URL trong allowlist. Cần cấu hình email provider/SMTP để nhận thư. Nếu yêu cầu gửi email bị từ chối, giao diện hiện mã lỗi và HTTP status; đối chiếu với Auth Logs thay vì suy luận nguyên nhân từ thông báo chung.
 
 Kiểm tra cấu hình Cloud và các bảng/view mà frontend cần:
 

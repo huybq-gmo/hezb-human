@@ -27,6 +27,7 @@ export default function ResetPasswordPage() {
   const router = useRouter()
   const [checkingSession, setCheckingSession] = useState(true)
   const [hasSession, setHasSession] = useState(false)
+  const [accountEmail, setAccountEmail] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const {
     register,
@@ -37,10 +38,11 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     let active = true
     void createClient()
-      .auth.getSession()
+      .auth.getUser()
       .then(({ data, error }) => {
         if (!active) return
-        setHasSession(!error && !!data.session)
+        setHasSession(!error && !!data.user)
+        setAccountEmail(!error ? data.user?.email || null : null)
         setCheckingSession(false)
       })
       .catch(() => {
@@ -60,9 +62,38 @@ export default function ResetPasswordPage() {
         password: data.password,
       })
       if (error) {
-        setErrorMessage(
-          'Không thể cập nhật mật khẩu. Liên kết có thể đã hết hạn; hãy gửi yêu cầu mới.',
-        )
+        const code = error.code?.toLowerCase()
+        const detail = error.message.toLowerCase()
+        console.error('[password-reset] updateUser failed', {
+          code,
+          status: error.status,
+        })
+
+        if (code === 'same_password') {
+          setErrorMessage('Mật khẩu này trùng với mật khẩu hiện tại. Hãy chọn mật khẩu mới khác.')
+        } else if (code === 'weak_password') {
+          setErrorMessage(
+            'Mật khẩu chưa đáp ứng chính sách bảo mật của Supabase. Hãy thử mật khẩu dài và khó đoán hơn.',
+          )
+        } else if (code === 'reauthentication_needed') {
+          setErrorMessage(
+            'Phiên cần được xác minh lại trước khi đổi mật khẩu. Hãy gửi yêu cầu khôi phục mới.',
+          )
+        } else if (
+          error.status === 401 ||
+          code === 'session_not_found' ||
+          /session (is )?(missing|expired|invalid)|token (has )?(expired|invalid)/.test(
+            detail,
+          )
+        ) {
+          setErrorMessage(
+            'Phiên khôi phục không còn hợp lệ. Hãy gửi yêu cầu khôi phục mới và mở liên kết mới nhất.',
+          )
+        } else {
+          setErrorMessage(
+            `Supabase từ chối cập nhật mật khẩu (mã ${code || `HTTP_${error.status}`}). Hãy kiểm tra chính sách mật khẩu trong Supabase Auth.`,
+          )
+        }
         return
       }
       toast.success('Đã cập nhật mật khẩu.')
@@ -102,6 +133,7 @@ export default function ResetPasswordPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit(updatePassword)}>
+              {accountEmail && <p className="muted">Đặt mật khẩu cho <strong>{accountEmail}</strong></p>}
               <Field label="Mật khẩu mới" error={errors.password?.message}>
                 <input
                   {...register('password')}
